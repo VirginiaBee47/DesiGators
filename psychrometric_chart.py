@@ -20,6 +20,109 @@ from math import exp
 R_dry_air = 287.055 # [=] J/(kg * C)
 R_water_vapor = 461.520 # [=] J/(kg * C)
 
+psychrometric_properties = {'dry_bulb_temperature' : None,
+                            'wet_bulb_temperature' : None,
+                            'dew_point_temperature' : None,
+                            'total_pressure' : None,
+                            'humidity_ratio' : None,
+                            'relative_humidity' : None,
+                            'total_enthalpy' : None,
+                            'partial_pressure_vapor' : None,
+                            'specific_volume' : None}
+
+
+class PsychrometricProperties:
+    def __init__(self, **kwargs):
+        if 'dry_bulb_temperature' in kwargs.keys():
+            self.dry_bulb_temperature = kwargs['dry_bulb_temperature']
+        else:
+            self.dry_bulb_temperature = None
+
+        if 'wet_bulb_temperature' in kwargs.keys():
+            self.wet_bulb_temperature = kwargs['wet_bulb_temperature']
+        else:
+            self.wet_bulb_temperature = None
+            
+        if 'dew_point_temperature' in kwargs.keys():
+            self.dew_point_temperature = kwargs['dew_point_temperature']
+        else:
+            self.dew_point_temperature = None
+            
+        if 'total_pressure' in kwargs.keys():
+            self.total_pressure = kwargs['total_pressure']
+        else:
+            self.total_pressure = None
+        
+        if 'humidity_ratio' in kwargs.keys():
+            self.humidity_ratio = kwargs['humidity_ratio']
+        else:
+            self.humidity_ratio = None
+            
+        if 'relative_humidity' in kwargs.keys():
+            self.relative_humidity = kwargs['relative_humidity']
+        else:
+            self.relative_humidity = None
+            
+        if 'total_enthalpy' in kwargs.keys():
+            self.total_enthalpy = kwargs['total_enthalpy']
+        else:
+            self.total_enthalpy = None
+            
+        if 'partial_pressure_vapor' in kwargs.keys():
+            self.partial_pressure_vapor = kwargs['partial_pressure_vapor']
+        else:
+            self.partial_pressure_vapor = None
+            
+        if 'density' in kwargs.keys():
+            self.density = kwargs['density']
+        else:
+            self.density = None
+            
+        if 'specific_volume' in kwargs.keys():
+            self.specific_volume = kwargs['specific_volume']
+        else:
+            self.specific_volume = None
+            
+        self.point_defined = self.check_defined()
+        
+        
+    def check_defined(self) -> bool:
+        """Checks to see if the condition specified is fully defined.
+        
+        Function checks to see if there is enough information to fully define 
+        the psychrometric properties of the point or if more must be supplied 
+        to defind the point.
+
+        Returns
+        -------
+        bool
+            Whether or not the point is fully defined.
+
+        """
+        criterion_1, criterion_2 = False, False
+        criterion_2_properties = [self.dry_bulb_temperature, 
+                                  self.wet_bulb_temperature,
+                                  self.dew_point_temperature,
+                                  self.humidity_ratio,
+                                  self.relative_humidity,
+                                  self.total_enthalpy,
+                                  self.partial_pressure_vapor,
+                                  self.specific_volume]
+        
+        if self.total_pressure is not None:
+            criterion_1 = True
+            
+        if sum(x is not None for x in criterion_2_properties) >= 2:
+            criterion_2 = True
+            
+        return criterion_1 and criterion_2
+    
+    
+    def define_point(self) -> None:
+        if not self.point_defined:
+            raise 
+            
+
 def find_p_saturation(air_temp: float) -> float:
     """Function to find the saturation vapor pressure of water at a given temperature.
 
