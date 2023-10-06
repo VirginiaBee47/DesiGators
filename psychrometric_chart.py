@@ -12,10 +12,13 @@ Sponsor: Dr. Andrew MacIntosh
 Coach: Dr. Philip Jackson
 
 References:
-    1 - https://www.caee.utexas.edu/prof/novoselac/classes/are383/handouts/f01_06si.pdf
+    1 - https://journals.ametsoc.org/view/journals/apme/57/6/jamc-d-17-0334.1.xml
+    2 - https://www.1728.org/relhum.htm
+    X - https://www.caee.utexas.edu/prof/novoselac/classes/are383/handouts/f01_06si.pdf
 """
 
 from math import exp
+from exceptions import PointNotDefinedException
 
 R_dry_air = 287.055 # [=] J/(kg * C)
 R_water_vapor = 461.520 # [=] J/(kg * C)
@@ -82,10 +85,15 @@ class PsychrometricProperties:
             self.specific_volume = kwargs['specific_volume']
         else:
             self.specific_volume = None
-            
+                
         self.point_defined = self.check_defined()
         
-        
+        try:
+            self.define_point()
+        except PointNotDefinedException:
+            print("Point could not be defined automatically. Input more information and then try again. Continuing...")
+            
+            
     def check_defined(self) -> bool:
         """Checks to see if the condition specified is fully defined.
         
@@ -120,11 +128,21 @@ class PsychrometricProperties:
     
     def define_point(self) -> None:
         if not self.point_defined:
-            raise 
+            raise PointNotDefinedException
+        
+        # Case 1: Dry Bulb and Wet Bulb Temps known
+        if self.dry_bulb_temperature is not None and self.wet_bulb_temperature is not None:
+            self.total_enthalpy = find_total_enthalpy(self.wet_bulb_temperature, find_saturation_humidity_ratio(self.wet_bulb_temperature, p_total=self.total_pressure))
+            self.humidity_ratio = find_humidity_ratio_from_enthalpy_db(self.dry_bulb_temperature, self.total_enthalpy)
+            self.partial_pressure_vapor = find_p_water_vapor_from_humidity_ratio(self.humidity_ratio, self.p_total)
+            self.relative_humidity = find_relative_humidity(self.partial_pressure_vapor, self.dry_bulb_temperature)
+            
             
 
 def find_p_saturation(air_temp: float) -> float:
     """Function to find the saturation vapor pressure of water at a given temperature.
+
+    Equation follows that proposed in reference 1.    
 
     Parameters
     ----------
@@ -137,7 +155,7 @@ def find_p_saturation(air_temp: float) -> float:
         Answer provided in units of [Pa].
 
     """
-    return(exp(77.3450 + 0.0057 * (air_temp + 273.15) - 7235 / (air_temp + 273.15)) / (air_temp + 273.15) ** 8.2)
+    return(exp(34.494 - (4924.99 / (air_temp + 237.1))) / (air_temp + 105) ** 1.57)
 
 
 def find_humidity_ratio(p_vapor: float, p_total: float=101325) -> float:
@@ -231,3 +249,88 @@ def find_humidity_ratio_from_RH_temp(relative_humidity: float, air_temp: float, 
     
     p_vapor_calculated = relative_humidity * find_p_saturation(air_temp)
     return(find_humidity_ratio(p_vapor_calculated, p_total))
+
+
+def find_humidity_ratio_from_enthalpy_db(air_temp: float, enthalpy: float) -> float:
+    """Function to find humidity ratio using enthalpy and dry bulb temp.
+    
+    This function is particularly useful when wet bulb temperature is known
+    since it is a quick way to find the total enthalpy.
+
+    Parameters
+    ----------
+    air_temp : float
+        Specifically refers to dry bulb temperature. Must be reported in [C].
+    enthalpy : float
+        Total enthalpy of the air/water mix. Must be in units of [kJ/kg dry air].
+
+    Returns
+    -------
+    float
+        Answer provided in units of [kg water/kg dry air].
+
+    """
+    return((enthalpy - 1.005 * air_temp) / (1.88 * air_temp + 2501.4))
+
+
+def find_p_water_vapor_from_humidity_ratio(humidity_ratio: float, p_total: float=101325) -> float:
+    """Function to find the partial pressure of vapor given humidity ratio.
+    
+    This function calculates the partial pressure of water vapor given a
+    certain humidity ratio and ambient total pressure.    
+
+    Parameters
+    ----------
+    humidity_ratio : float
+        Must be in units of [kg water/kg dry air].
+    p_total : float, optional
+        Pressure must have units of [Pa]. The default is 101325.
+
+    Returns
+    -------
+    float
+        Answer provided in units of [Pa].
+
+    """
+    return(28.97 * humidity_ratio * p_total / (18.02 + 28.97 * humidity_ratio))
+
+
+def find_relative_humidity(p_vapor: float, air_temp: float) -> float:
+    """Function to find the relative humidity of the air.
+    
+    This function is particularly useful for applications of known partial 
+    pressure of water vapor. If this value is not yet known, refer to other 
+    equations first.
+
+    Parameters
+    ----------
+    p_vapor : float
+        Partial pressure of water vapor in the air. Must be in units of [Pa].
+    air_temp : float
+        Dry Bulb temperature of the ambient air. Must be in units of [C].
+
+    Returns
+    -------
+    float
+        Answer provided as a decimal representation of % relative humidity.
+
+    """
+    if rh := (p_vapor / find_p_saturation(air_temp)) > 1:
+        raise ValueError("Calculated relative humidity (%f) is too high for the given air temperature." % rh)
+    else:
+        return rh
+    return None
+    
+
+def find_dew_point_temperature(p_vapor: float, precision: int=3) -> float:
+    error_bound = 10 ** (-1 * precision)
+    trial_temp = 50
+    trial_p_sat = find_p_saturation(trial_temp)
+    
+    abs_diff = abs(p_vapor - trial_p_sat)
+    while abs_diff < error_bound:
+        if p_vapor > trial_p_sat:
+            trial_temp += 1
+        else:
+            trial_temp -= 1
+    return(trial_temp)
