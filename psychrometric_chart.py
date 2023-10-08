@@ -325,9 +325,37 @@ def find_relative_humidity(p_vapor: float, air_temp: float) -> float:
     
 
 def find_dew_point_temperature(p_vapor: float, precision: int=5, trial_temp: float=50) -> float:
+    """Function to use gradient descent to find dew point temperature.
+    
+    This function works in conjunction with t_dew_point_step to use gradient 
+    descent to find dew point temperature. To avoid the Lambert-W function in
+    solving the p_saturation equation for temperature, an iterative solution is
+    utilized. A temperature is guessed and then p_sat at the guessed
+    temperatuer is referenced to the known partial pressure of water vapor.
+    Then, using t_dew_point_step, the next guess is calculated until the
+    difference between the previous guess and next iteration is less than the
+    specified decimal presision (10 ** -precision).
+
+    Parameters
+    ----------
+    p_vapor : float
+        Partial pressure of water vapor in the air. Must be in units of [Pa].
+    precision : int, optional
+        Denotes the requested presicion of answer. The default is 5. Avoid 
+        precisions above 10 to reduce script runtime.
+    trial_temp : float, optional
+        Initial guess for dew point temperature. Must be in units of [C]. The 
+        default is 50.
+
+    Returns
+    -------
+    float
+        Answer provided is dew point temperature in units of [C].
+
+    """
     t_next = t_dew_point_step(trial_temp, p_vapor)
     
-    while abs(t_next - trial_temp) > 10 ** (-1 * precision):
+    while abs(t_next - trial_temp) > 10 ** (-precision):
         print(str(t_next))
         trial_temp = t_next
         t_next = t_dew_point_step(trial_temp, p_vapor)
@@ -336,6 +364,31 @@ def find_dew_point_temperature(p_vapor: float, precision: int=5, trial_temp: flo
 
 
 def t_dew_point_step(t_prev: float, p_vapor: float) -> float:
+    """Function to find the optimal step for dew point temperature calculation
+    
+    This function uses a square difference and derivative function to find the
+    optimal next step in temperature for dew point calculation. Because the
+    step size is proportional to the slope of the squared difference function,
+    the steps get smaller as the guess approaches the actual value for dew 
+    point temperature.
+    
+    Works in conjuction with find_dew_point_temperature function.
+
+    Parameters
+    ----------
+    t_prev : float
+        Previous guess for dew point temperature. Must be in units of [C].
+    p_vapor : float
+        Known value for partial pressure of water vapor. Must be in units of 
+        [Pa].
+
+    Returns
+    -------
+    float
+        Optimized next guess for dew point temperature. Provided in units of 
+        [C].
+
+    """
     difference_squared = (find_p_saturation(t_prev) - p_vapor) ** 2
     gradient = ((9849.88 * exp(68.998 - 9849.88/(t_prev + 237.1)) * (t_prev + 105) ** 3.14)/(t_prev + 237.1) ** 2 - 3.14 * exp(68.998 - 9849.88/(t_prev + 237.1)) * (t_prev + 105) ** 2.14)/(t_prev + 105) ** 6.28 - 2 * p_vapor * ((4924.99 * exp(34.494 - 4924.99/(t_prev + 237.1)) * (t_prev + 105) ** 1.57)/(t_prev + 237.1) ** 2 - 1.57 * exp(34.494 - 4924.99/(t_prev + 237.1)) * (t_prev + 105) ** 0.57)/(t_prev + 105) ** 3.14
     return (t_prev - difference_squared / gradient)
