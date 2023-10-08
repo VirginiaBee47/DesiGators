@@ -134,8 +134,10 @@ class PsychrometricProperties:
         if self.dry_bulb_temperature is not None and self.wet_bulb_temperature is not None:
             self.total_enthalpy = find_total_enthalpy(self.wet_bulb_temperature, find_saturation_humidity_ratio(self.wet_bulb_temperature, p_total=self.total_pressure))
             self.humidity_ratio = find_humidity_ratio_from_enthalpy_db(self.dry_bulb_temperature, self.total_enthalpy)
-            self.partial_pressure_vapor = find_p_water_vapor_from_humidity_ratio(self.humidity_ratio, self.p_total)
+            self.partial_pressure_vapor = find_p_water_vapor_from_humidity_ratio(self.humidity_ratio, self.total_pressure)
             self.relative_humidity = find_relative_humidity(self.partial_pressure_vapor, self.dry_bulb_temperature)
+            self.dew_point_temperature = find_dew_point_temperature(self.partial_pressure_vapor)
+            
             
             
 
@@ -315,7 +317,7 @@ def find_relative_humidity(p_vapor: float, air_temp: float) -> float:
         Answer provided as a decimal representation of % relative humidity.
 
     """
-    if rh := (p_vapor / find_p_saturation(air_temp)) > 1:
+    if (rh := (p_vapor / find_p_saturation(air_temp))) > 1:
         raise ValueError("Calculated relative humidity (%f) is too high for the given air temperature." % rh)
     else:
         return rh
@@ -329,6 +331,7 @@ def find_dew_point_temperature(p_vapor: float, precision: int=5, trial_temp: flo
         print(str(t_next))
         trial_temp = t_next
         t_next = t_dew_point_step(trial_temp, p_vapor)
+        
     return trial_temp
 
 
