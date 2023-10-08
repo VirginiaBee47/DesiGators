@@ -322,15 +322,17 @@ def find_relative_humidity(p_vapor: float, air_temp: float) -> float:
     return None
     
 
-def find_dew_point_temperature(p_vapor: float, precision: int=3) -> float:
-    error_bound = 10 ** (-1 * precision)
-    trial_temp = 50
-    trial_p_sat = find_p_saturation(trial_temp)
+def find_dew_point_temperature(p_vapor: float, precision: int=5, trial_temp: float=50) -> float:
+    t_next = t_dew_point_step(trial_temp, p_vapor)
     
-    abs_diff = abs(p_vapor - trial_p_sat)
-    while abs_diff < error_bound:
-        if p_vapor > trial_p_sat:
-            trial_temp += 1
-        else:
-            trial_temp -= 1
-    return(trial_temp)
+    while abs(t_next - trial_temp) > 10 ** (-1 * precision):
+        print(str(t_next))
+        trial_temp = t_next
+        t_next = t_dew_point_step(trial_temp, p_vapor)
+    return trial_temp
+
+
+def t_dew_point_step(t_prev: float, p_vapor: float) -> float:
+    difference_squared = (find_p_saturation(t_prev) - p_vapor) ** 2
+    gradient = ((9849.88 * exp(68.998 - 9849.88/(t_prev + 237.1)) * (t_prev + 105) ** 3.14)/(t_prev + 237.1) ** 2 - 3.14 * exp(68.998 - 9849.88/(t_prev + 237.1)) * (t_prev + 105) ** 2.14)/(t_prev + 105) ** 6.28 - 2 * p_vapor * ((4924.99 * exp(34.494 - 4924.99/(t_prev + 237.1)) * (t_prev + 105) ** 1.57)/(t_prev + 237.1) ** 2 - 1.57 * exp(34.494 - 4924.99/(t_prev + 237.1)) * (t_prev + 105) ** 0.57)/(t_prev + 105) ** 3.14
+    return (t_prev - difference_squared / gradient)
