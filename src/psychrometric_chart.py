@@ -233,8 +233,9 @@ class PsychrometricProperties:
             self.total_enthalpy = find_total_enthalpy(self.wet_bulb_temperature,
                                                       find_saturation_humidity_ratio(self.wet_bulb_temperature,
                                                                                      self.total_pressure))
-            pass  # How to find humidity ratio (or dry bulb) from knowns at this point?
-
+            self.dry_bulb_temperature = find_dry_bulb_temperature_RH_enthalpy(self.relative_humidity, self.total_enthalpy, self.total_pressure)
+            pass
+        
 
 def find_p_saturation(air_temp: float) -> float:
     """Function to find the saturation vapor pressure of water at a given temperature.
