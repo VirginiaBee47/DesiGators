@@ -507,6 +507,9 @@ def t_dew_point_step(t_prev: float, p_vapor: float) -> float:
     return t_prev - difference_squared / gradient
 
 
+#def t_dry_bulb_step(t_prev: float, )
+
+
 def find_humidity_ratio_from_cp(specific_heat_capacity: float) -> float:
     """Function to find the humidity ratio given specific heat capacity.
     
