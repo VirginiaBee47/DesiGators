@@ -203,13 +203,17 @@ class PsychrometricProperties:
 
         # Case 5: Dry Bulb and Specific Volume known
         elif self.dry_bulb_temperature is not None and self.specific_volume is not None:
-            self.humidity_ratio = find_humidity_ratio_from_specific_vol_and_temp(self.specific_volume, self.dry_bulb_temperature, self.total_pressure)
-            self.partial_pressure_vapor = find_p_water_vapor_from_humidity_ratio(self.humidity_ratio, self.total_pressure)
+            self.humidity_ratio = find_humidity_ratio_from_specific_vol_and_temp(self.specific_volume,
+                                                                                 self.dry_bulb_temperature,
+                                                                                 self.total_pressure)
+            self.partial_pressure_vapor = find_p_water_vapor_from_humidity_ratio(self.humidity_ratio,
+                                                                                 self.total_pressure)
             self.relative_humidity = find_relative_humidity(self.partial_pressure_vapor, self.dry_bulb_temperature)
             self.dew_point_temperature = find_dew_point_temperature(self.partial_pressure_vapor)
             self.specific_heat_capacity = find_specific_heat(self.humidity_ratio)
             self.total_enthalpy = find_total_enthalpy(self.dry_bulb_temperature, self.humidity_ratio)
-            self.wet_bulb_temperature = find_wet_bulb_temperature(self.total_enthalpy, self.dry_bulb_temperature, self.total_pressure)
+            self.wet_bulb_temperature = find_wet_bulb_temperature(self.total_enthalpy, self.dry_bulb_temperature,
+                                                                  self.total_pressure)
 
         # Case 6: Wet Bulb and Humidity Ratio known
         elif self.wet_bulb_temperature is not None and self.humidity_ratio is not None:
@@ -220,7 +224,8 @@ class PsychrometricProperties:
             self.dry_bulb_temperature = find_dry_bulb_temperature(self.total_enthalpy, self.humidity_ratio)
             self.dew_point_temperature = find_dew_point_temperature(self.partial_pressure_vapor)
             self.relative_humidity = find_relative_humidity(self.partial_pressure_vapor, self.dry_bulb_temperature)
-            self.specific_volume = find_specific_volume(self.humidity_ratio, self.dry_bulb_temperature, self.total_pressure)
+            self.specific_volume = find_specific_volume(self.humidity_ratio, self.dry_bulb_temperature,
+                                                        self.total_pressure)
             self.specific_heat_capacity = find_specific_heat(self.humidity_ratio)
 
         # Case 7: Wet Bulb and Relative Humidity known
@@ -248,6 +253,30 @@ def find_p_saturation(air_temp: float) -> float:
 
     """
     return exp(34.494 - (4924.99 / (air_temp + 237.1))) / (air_temp + 105) ** 1.57
+
+
+def deriv_p_saturation(T: float) -> float:
+    """Derivative of saturation vapor pressure equation
+    
+    Derivative of p_sat equation to be used in gradient descent calculations.
+
+    Parameters
+    ----------
+    T : float
+        Temperature at which the derivative is to be evaluated. Must be in 
+        units of [C].
+
+    Returns
+    -------
+    float
+        Slope of p_saturation vs. T plot at a given T. Answer (technically) 
+        given in units of [Pa/C].
+
+    """
+    numer = (T + 105) ** 1.57 * exp(34.494 - 4924.99 / (T + 237.1)) * 4924.99 / (T + 237.1) ** 2 - exp(
+        34.494 - 4924.99 / (T + 237.1)) * 1.57 * (T + 105) ** 0.57
+    denom = (T + 105) ** 3.14
+    return numer / denom
 
 
 def find_humidity_ratio(p_vapor: float, p_total: float = 101325) -> float:
@@ -464,7 +493,6 @@ def find_dew_point_temperature(p_vapor: float, precision: int = 5, trial_temp: f
     t_next = t_dew_point_step(trial_temp, p_vapor)
 
     while abs(t_next - trial_temp) > 10 ** (-precision):
-        print(str(t_next))
         trial_temp = t_next
         t_next = t_dew_point_step(trial_temp, p_vapor)
 
@@ -499,15 +527,99 @@ def t_dew_point_step(t_prev: float, p_vapor: float) -> float:
     """
     difference_squared = (find_p_saturation(t_prev) - p_vapor) ** 2
     gradient = ((9849.88 * exp(68.998 - 9849.88 / (t_prev + 237.1)) * (t_prev + 105) ** 3.14) / (
-                t_prev + 237.1) ** 2 - 3.14 * exp(68.998 - 9849.88 / (t_prev + 237.1)) * (t_prev + 105) ** 2.14) / (
-                           t_prev + 105) ** 6.28 - 2 * p_vapor * (
-                           (4924.99 * exp(34.494 - 4924.99 / (t_prev + 237.1)) * (t_prev + 105) ** 1.57) / (
-                               t_prev + 237.1) ** 2 - 1.57 * exp(34.494 - 4924.99 / (t_prev + 237.1)) * (
-                                       t_prev + 105) ** 0.57) / (t_prev + 105) ** 3.14
+            t_prev + 237.1) ** 2 - 3.14 * exp(68.998 - 9849.88 / (t_prev + 237.1)) * (t_prev + 105) ** 2.14) / (
+                       t_prev + 105) ** 6.28 - 2 * p_vapor * (
+                       (4924.99 * exp(34.494 - 4924.99 / (t_prev + 237.1)) * (t_prev + 105) ** 1.57) / (
+                       t_prev + 237.1) ** 2 - 1.57 * exp(34.494 - 4924.99 / (t_prev + 237.1)) * (
+                               t_prev + 105) ** 0.57) / (t_prev + 105) ** 3.14
     return t_prev - difference_squared / gradient
 
 
-#def t_dry_bulb_step(t_prev: float, )
+def t_dry_bulb_step(t_prev: float, relative_humidity: float, total_enthalpy: float,
+                    total_pressure: float = 101325) -> float:
+    """Function to find the optimal step for dry bulb temperature calculation
+    
+    This function uses a square difference and derivative function to find the
+    optimal next step in temperature for dry bulb temperature calculation. 
+    Because the step size is proportional to the slope of the squared 
+    difference function, the steps get smaller as the guess approaches the 
+    actual value for dry bulb temperature.
+
+    Parameters
+    ----------
+    t_prev : float
+        Previous guess for dew point temperature. Must be in units of [C].
+    relative_humidity : float
+        Relative humidity provided as a decimal on the interval [0,1].
+    total_enthalpy : float
+        Total enthalpy of the air/water vapor mix in units of [kJ/kg dry air].
+    total_pressure : float, optional
+        Sum of partial pressures in ambient environment. Pressure must have 
+        units of [Pa]. The default is 101325.
+
+    Returns
+    -------
+    float
+        Optimized next guess for dew point temperature. Provided in units of 
+        [C].
+
+    """
+    difference_squared = (1.005 * t_prev + (1.88 * t_prev + 2501.4) * relative_humidity * find_p_saturation(t_prev) / (
+                total_pressure - relative_humidity * find_p_saturation(t_prev)) - total_enthalpy) ** 2
+    gradient = 2 * (1.005 * t_prev + (1.88 * t_prev + 2501.4) * relative_humidity * find_p_saturation(t_prev) / (
+                total_pressure - relative_humidity * find_p_saturation(t_prev)) - total_enthalpy) * (
+                           1.005 + (1.88 * t_prev + 2501.4) * relative_humidity * total_pressure * deriv_p_saturation(
+                       t_prev) / (total_pressure - relative_humidity * find_p_saturation(
+                       t_prev)) ** 2 + 1.88 * relative_humidity * find_p_saturation(t_prev) / (
+                                       total_pressure - relative_humidity * find_p_saturation(t_prev)))
+
+    return t_prev - difference_squared / gradient
+
+
+def find_dry_bulb_temperature_RH_enthalpy(relative_humidity: float, total_enthalpy: float,
+                                          total_pressure: float = 101325, precision: int = 5,
+                                          trial_temp: float = 50) -> float:
+    """Function to use gradient descent to find dry bulb temperature.
+    
+    This function works in conjunction with t_dry_bulb_step to use gradient 
+    descent to find dry bulb temperature. To avoid the Lambert-W function in
+    solving the p_saturation equation for temperature, an iterative solution is
+    utilized. A temperature is guessed and then the difference between the 
+    calculated value of total enthalpy and the actual known value is computed. 
+    Then, using t_dry_bulb_step, the next guess is calculated until the
+    difference between the previous guess and next iteration is less than the
+    specified decimal presision (10 ** -precision).
+    
+
+    Parameters
+    ----------
+    relative_humidity : float
+        Relative humidity provided as a decimal on the interval [0,1].
+    total_enthalpy : float
+        Total enthalpy of the air/water vapor mix in units of [kJ/kg dry air].
+    total_pressure : float, optional
+        Sum of partial pressures in ambient environment. Pressure must have 
+        units of [Pa]. The default is 101325.
+    precision : int, optional
+        Denotes the requested presicion of answer. The default is 5. Avoid 
+        precisions above 10 to reduce script runtime.
+    trial_temp : float, optional
+         Initial guess for dew point temperature. Must be in units of [C]. The 
+        default is 50.
+
+    Returns
+    -------
+    float
+        Answer provided is dry bulb temperature in units of [C].
+
+    """
+    t_next = t_dry_bulb_step(trial_temp, relative_humidity, total_enthalpy, total_pressure)
+
+    while abs(t_next - trial_temp) > 10 ** (-precision):
+        trial_temp = t_next
+        t_next = t_dry_bulb_step(trial_temp, relative_humidity, total_enthalpy, total_pressure)
+
+    return trial_temp
 
 
 def find_humidity_ratio_from_cp(specific_heat_capacity: float) -> float:
@@ -583,7 +695,8 @@ def find_specific_volume(humidity_ratio: float, air_temp: float, total_pressure:
     return (R_a + R_w * humidity_ratio) * temp_K
 
 
-def find_humidity_ratio_from_specific_vol_and_temp(specific_volume: float, air_temp: float, total_pressure: float=101325) -> float:
+def find_humidity_ratio_from_specific_vol_and_temp(specific_volume: float, air_temp: float,
+                                                   total_pressure: float = 101325) -> float:
     """Function to find the humidity ratio of air/water vapor mixture.
 
     This function uses a derivation of the ideal gas law (PV=mRT) to solve for
