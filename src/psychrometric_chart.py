@@ -234,7 +234,11 @@ class PsychrometricProperties:
                                                       find_saturation_humidity_ratio(self.wet_bulb_temperature,
                                                                                      self.total_pressure))
             self.dry_bulb_temperature = find_dry_bulb_temperature_RH_enthalpy(self.relative_humidity, self.total_enthalpy, self.total_pressure)
-            pass
+            self.humidity_ratio = find_humidity_ratio_from_enthalpy_db(self.dry_bulb_temperature, self.total_enthalpy)
+            self.partial_pressure_vapor = find_p_water_vapor_from_humidity_ratio(self.humidity_ratio, self.total_pressure)
+            self.specific_volume = find_specific_volume(self.humidity_ratio, self.dry_bulb_temperature, self.total_pressure)
+            self.specific_heat_capacity = find_specific_heat(self.humidity_ratio)
+            self.dew_point_temperature = find_dew_point_temperature(self.partial_pressure_vapor)
         
 
 def find_p_saturation(air_temp: float) -> float:
