@@ -240,6 +240,17 @@ class PsychrometricProperties:
             self.specific_heat_capacity = find_specific_heat(self.humidity_ratio)
             self.dew_point_temperature = find_dew_point_temperature(self.partial_pressure_vapor)
         
+        # Case 8: Wet Bulb and Total Enthalpy known
+        elif self.wet_bulb_temperature is not None and self.total_enthalpy is not None:
+            self.dry_bulb_temperature = find_dry_bulb_temperature_WB_enthalpy(self.wet_bulb_temperature, self.total_enthalpy, self.total_pressure)
+            self.humidity_ratio = find_humidity_ratio_from_enthalpy_db(self.dry_bulb_temperature, self.total_enthalpy)
+            self.partial_pressure_vapor = find_p_water_vapor_from_humidity_ratio(self.humidity_ratio, self.total_pressure)
+            self.relative_humidity = find_relative_humidity(self.partial_pressure_vapor, self.dry_bulb_temperature)
+            self.dew_point_temperature = find_dew_point_temperature(self.partial_pressure_vapor)
+            self.specific_volume = find_specific_volume(self.humidity_ratio, self.dry_bulb_temperature, self.total_pressure)
+            self.specific_heat_capacity = find_specific_heat(self.humidity_ratio)
+            
+        # Case 9: 
 
 def find_p_saturation(air_temp: float) -> float:
     """Function to find the saturation vapor pressure of water at a given temperature.
@@ -791,3 +802,8 @@ def find_wet_bulb_temperature(enthalpy: float, air_temp: float, total_pressure: 
     """
     humidity_ratio_saturation = find_saturation_humidity_ratio(air_temp, p_total=total_pressure)
     return (enthalpy - 2501.4 * humidity_ratio_saturation) / (1.005 + 1.88 * humidity_ratio_saturation)
+
+
+def find_dry_bulb_temperature_WB_enthalpy(wet_bulb_temp: float, enthalpy: float, total_pressure: float=101325, precision: int=5, trial_temp: float=50) -> float:
+    saturation_vapor_pressure = total_pressure * 28.97 * (enthalpy - 1.005 * wet_bulb_temp) / (28.97 * (enthalpy - 1.005 * wet_bulb_temp) + 18.02 * (1.88 * wet_bulb_temp + 2501.4))
+    return find_dew_point_temperature(saturation_vapor_pressure, precision, trial_temp)
