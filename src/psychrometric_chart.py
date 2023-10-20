@@ -98,6 +98,7 @@ class PsychrometricProperties:
             self.define_point()
         except PointNotDefinedException:
             print("Point could not be defined automatically. Input more information and then try again. Continuing...")
+            raise
 
     def check_defined(self) -> bool:
         """Checks to see if the condition specified is fully defined.
@@ -250,7 +251,9 @@ class PsychrometricProperties:
             self.specific_volume = find_specific_volume(self.humidity_ratio, self.dry_bulb_temperature, self.total_pressure)
             self.specific_heat_capacity = find_specific_heat(self.humidity_ratio)
             
-        # Case 9: 
+        # Case 9: Wet Bulb and Specifc Volume known
+        elif self.wet_bulb_temperature is not None and self.specific_volume is not None:
+            
 
 
 def find_p_saturation(air_temp: float) -> float:
