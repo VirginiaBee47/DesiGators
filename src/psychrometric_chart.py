@@ -253,7 +253,7 @@ class PsychrometricProperties:
             
         # Case 9: Wet Bulb and Specifc Volume known
         elif self.wet_bulb_temperature is not None and self.specific_volume is not None:
-            
+            pass
 
 
 def find_p_saturation(air_temp: float) -> float:
