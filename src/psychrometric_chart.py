@@ -18,7 +18,7 @@ References:
 """
 
 from math import exp
-from exceptions import PointNotDefinedException
+from exceptions import PointNotDefinedException, InvalidParamsException
 
 R_dry_air = 287.055  # [=] J/(kg * C)
 R_water_vapor = 461.520  # [=] J/(kg * C)
@@ -92,7 +92,7 @@ class PsychrometricProperties:
         else:
             self.specific_heat_capacity = None
 
-        self.point_defined = self.check_defined()
+        self.point_definable = self.check_definable()
 
         try:
             self.define_point()
@@ -100,17 +100,16 @@ class PsychrometricProperties:
             print("Point could not be defined automatically. Input more information and then try again. Continuing...")
             raise
 
-    def check_defined(self) -> bool:
+    def check_definable(self) -> bool:
         """Checks to see if the condition specified is fully defined.
         
         Function checks to see if there is enough information to fully define 
-        the psychrometric properties of the point or if more must be supplied 
-        to defind the point.
+        the psychrometric properties of the point or if more must be supplied.
 
         Returns
         -------
         bool
-            Whether or not the point is fully defined.
+            Whether the point is fully defined.
 
         """
         criterion_1, criterion_2 = False, False
@@ -132,9 +131,43 @@ class PsychrometricProperties:
 
         return criterion_1 and criterion_2
 
+    def check_validity(self) -> None:
+        if self.dry_bulb_temperature is not None and self.wet_bulb_temperature is not None:
+            if self.wet_bulb_temperature > self.dry_bulb_temperature:
+                raise InvalidParamsException("Dry bulb temperature must be greater than or equal to wet bulb "
+                                             "temperature.")
+
+        if self.dry_bulb_temperature is not None and self.dew_point_temperature is not None:
+            if self.dew_point_temperature > self.dry_bulb_temperature:
+                raise InvalidParamsException("Dry bulb temperature must be greater than or equal to dew point "
+                                             "temperature.")
+
+        if self.wet_bulb_temperature is not None and self.dew_point_temperature is not None:
+            if self.dew_point_temperature > self.wet_bulb_temperature:
+                raise InvalidParamsException("Wet bulb temperature must be greater than or equal to dew point "
+                                             "temperature.")
+
+        if self.relative_humidity is not None:
+            if self.relative_humidity > 1:
+                raise InvalidParamsException("Relative humidity cannot exceed a value of 100%")
+
+        if self.humidity_ratio is not None and self.dry_bulb_temperature is not None and self.total_pressure is not None:
+            if self.humidity_ratio > (
+                    h_sat := find_saturation_humidity_ratio(self.dry_bulb_temperature, self.total_pressure)):
+                raise InvalidParamsException(
+                    "Humidity ratio supplied cannot exceed saturation humidity ratio at the given temperature: {H_sat "
+                    "= %f}" % h_sat)
+
+        if self.partial_pressure_vapor is not None and self.dry_bulb_temperature is not None:
+            if self.partial_pressure_vapor > (p_sat := find_p_saturation(self.dry_bulb_temperature)):
+                raise InvalidParamsException("Vapor Pressure of water supplied is greater than the saturation vapor "
+                                             "pressure at the given temperature: {P_sat = %f}" % p_sat)
+
     def define_point(self) -> None:
-        if not self.point_defined:
+        if not self.point_definable:
             raise PointNotDefinedException
+
+        self.check_validity()
 
         # Case reduction 1: specific heat capacity to humidity ratio
         if self.specific_heat_capacity is not None:
@@ -170,7 +203,7 @@ class PsychrometricProperties:
         # Case 2: Dry Bulb and Humidity Ratio known
         elif self.dry_bulb_temperature is not None and self.humidity_ratio is not None:
             self.total_enthalpy = find_total_enthalpy(self.dry_bulb_temperature, self.humidity_ratio)
-            self.wet_bulb_temperature = find_wet_bulb_temperature(self.total_enthalpy, self.dry_bulb_temperature)
+            self.wet_bulb_temperature = find_wet_bulb_temperature(self.total_enthalpy, self.total_pressure)
             self.dew_point_temperature = find_dew_point_temperature(self.partial_pressure_vapor)
             self.relative_humidity = find_relative_humidity(self.partial_pressure_vapor, self.dry_bulb_temperature)
             self.specific_volume = find_specific_volume(self.humidity_ratio, self.dry_bulb_temperature,
@@ -184,7 +217,7 @@ class PsychrometricProperties:
                                                                    p_total=self.total_pressure)
             self.dew_point_temperature = find_dew_point_temperature(self.partial_pressure_vapor)
             self.total_enthalpy = find_total_enthalpy(self.dry_bulb_temperature, self.humidity_ratio)
-            self.wet_bulb_temperature = find_wet_bulb_temperature(self.total_enthalpy, self.dry_bulb_temperature)
+            self.wet_bulb_temperature = find_wet_bulb_temperature(self.total_enthalpy, self.total_pressure)
             self.specific_volume = find_specific_volume(self.humidity_ratio, self.dry_bulb_temperature,
                                                         self.total_pressure)
             self.specific_heat_capacity = find_specific_heat(self.humidity_ratio)
@@ -192,8 +225,7 @@ class PsychrometricProperties:
         # Case 4: Dry Bulb and Total Enthalpy known
         elif self.dry_bulb_temperature is not None and self.total_enthalpy is not None:
             self.humidity_ratio = find_humidity_ratio_from_enthalpy_db(self.dry_bulb_temperature, self.total_enthalpy)
-            self.wet_bulb_temperature = find_wet_bulb_temperature(self.total_enthalpy, self.dry_bulb_temperature,
-                                                                  self.total_pressure)
+            self.wet_bulb_temperature = find_wet_bulb_temperature(self.total_enthalpy, self.total_pressure)
             self.partial_pressure_vapor = find_p_water_vapor_from_humidity_ratio(self.humidity_ratio,
                                                                                  self.total_pressure)
             self.dew_point_temperature = find_dew_point_temperature(self.partial_pressure_vapor)
@@ -213,8 +245,7 @@ class PsychrometricProperties:
             self.dew_point_temperature = find_dew_point_temperature(self.partial_pressure_vapor)
             self.specific_heat_capacity = find_specific_heat(self.humidity_ratio)
             self.total_enthalpy = find_total_enthalpy(self.dry_bulb_temperature, self.humidity_ratio)
-            self.wet_bulb_temperature = find_wet_bulb_temperature(self.total_enthalpy, self.dry_bulb_temperature,
-                                                                  self.total_pressure)
+            self.wet_bulb_temperature = find_wet_bulb_temperature(self.total_enthalpy, self.total_pressure)
 
         # Case 6: Wet Bulb and Humidity Ratio known
         elif self.wet_bulb_temperature is not None and self.humidity_ratio is not None:
@@ -234,24 +265,30 @@ class PsychrometricProperties:
             self.total_enthalpy = find_total_enthalpy(self.wet_bulb_temperature,
                                                       find_saturation_humidity_ratio(self.wet_bulb_temperature,
                                                                                      self.total_pressure))
-            self.dry_bulb_temperature = find_dry_bulb_temperature_RH_enthalpy(self.relative_humidity, self.total_enthalpy, self.total_pressure)
+            self.dry_bulb_temperature = find_dry_bulb_temperature_RH_enthalpy(self.relative_humidity,
+                                                                              self.total_enthalpy, self.total_pressure)
             self.humidity_ratio = find_humidity_ratio_from_enthalpy_db(self.dry_bulb_temperature, self.total_enthalpy)
-            self.partial_pressure_vapor = find_p_water_vapor_from_humidity_ratio(self.humidity_ratio, self.total_pressure)
-            self.specific_volume = find_specific_volume(self.humidity_ratio, self.dry_bulb_temperature, self.total_pressure)
+            self.partial_pressure_vapor = find_p_water_vapor_from_humidity_ratio(self.humidity_ratio,
+                                                                                 self.total_pressure)
+            self.specific_volume = find_specific_volume(self.humidity_ratio, self.dry_bulb_temperature,
+                                                        self.total_pressure)
             self.specific_heat_capacity = find_specific_heat(self.humidity_ratio)
             self.dew_point_temperature = find_dew_point_temperature(self.partial_pressure_vapor)
-        
+
         # Case 8: Wet Bulb and Total Enthalpy known
         elif self.wet_bulb_temperature is not None and self.total_enthalpy is not None:
-            self.dry_bulb_temperature = find_dry_bulb_temperature_WB_enthalpy(self.wet_bulb_temperature, self.total_enthalpy, self.total_pressure)
+            self.dry_bulb_temperature = find_dry_bulb_temperature_WB_enthalpy(self.wet_bulb_temperature,
+                                                                              self.total_enthalpy, self.total_pressure)
             self.humidity_ratio = find_humidity_ratio_from_enthalpy_db(self.dry_bulb_temperature, self.total_enthalpy)
-            self.partial_pressure_vapor = find_p_water_vapor_from_humidity_ratio(self.humidity_ratio, self.total_pressure)
+            self.partial_pressure_vapor = find_p_water_vapor_from_humidity_ratio(self.humidity_ratio,
+                                                                                 self.total_pressure)
             self.relative_humidity = find_relative_humidity(self.partial_pressure_vapor, self.dry_bulb_temperature)
             self.dew_point_temperature = find_dew_point_temperature(self.partial_pressure_vapor)
-            self.specific_volume = find_specific_volume(self.humidity_ratio, self.dry_bulb_temperature, self.total_pressure)
+            self.specific_volume = find_specific_volume(self.humidity_ratio, self.dry_bulb_temperature,
+                                                        self.total_pressure)
             self.specific_heat_capacity = find_specific_heat(self.humidity_ratio)
-            
-        # Case 9: Wet Bulb and Specifc Volume known
+
+        # Case 9: Wet Bulb and Specific Volume known
         elif self.wet_bulb_temperature is not None and self.specific_volume is not None:
             pass
 
@@ -335,6 +372,25 @@ def find_saturation_humidity_ratio(air_temp: float, p_total: float = 101325) -> 
 
     """
     return find_humidity_ratio(find_p_saturation(air_temp), p_total)
+
+
+def deriv_h_sat(T: float, P_tot: float = 101325) -> float:
+    """Function to find the derivative of the saturation humidity ratio function at a given temperature.
+
+    Parameters
+    ----------
+    T : float
+        Temperature supplied must be in [C].
+    P_tot : float, optional
+        Pressure must have units of [Pa]. The default is 101325.
+
+    Returns
+    -------
+    float
+        Answer provided in units of [kg water/kg dry air * C].
+
+    """
+    return 18.02 / 28.97 * P_tot * deriv_p_saturation(T) / (P_tot - find_p_saturation(T)) ** 2
 
 
 def find_total_enthalpy(air_temp: float, humidity_ratio: float) -> float:
@@ -488,17 +544,17 @@ def find_dew_point_temperature(p_vapor: float, precision: int = 5, trial_temp: f
     descent to find dew point temperature. To avoid the Lambert-W function in
     solving the p_saturation equation for temperature, an iterative solution is
     utilized. A temperature is guessed and then p_sat at the guessed
-    temperatuer is referenced to the known partial pressure of water vapor.
+    temperature is referenced to the known partial pressure of water vapor.
     Then, using t_dew_point_step, the next guess is calculated until the
     difference between the previous guess and next iteration is less than the
-    specified decimal presision (10 ** -precision).
+    specified decimal precision (10 ** -precision).
 
     Parameters
     ----------
     p_vapor : float
         Partial pressure of water vapor in the air. Must be in units of [Pa].
     precision : int, optional
-        Denotes the requested presicion of answer. The default is 5. Avoid 
+        Denotes the requested precision of answer. The default is 5. Avoid
         precisions above 10 to reduce script runtime.
     trial_temp : float, optional
         Initial guess for dew point temperature. Must be in units of [C]. The 
@@ -528,7 +584,7 @@ def t_dew_point_step(t_prev: float, p_vapor: float) -> float:
     the steps get smaller as the guess approaches the actual value for dew 
     point temperature.
     
-    Works in conjuction with find_dew_point_temperature function.
+    Works in conjunction with find_dew_point_temperature function.
 
     Parameters
     ----------
@@ -585,13 +641,13 @@ def t_dry_bulb_step(t_prev: float, relative_humidity: float, total_enthalpy: flo
 
     """
     difference_squared = (1.005 * t_prev + (1.88 * t_prev + 2501.4) * relative_humidity * find_p_saturation(t_prev) / (
-                total_pressure - relative_humidity * find_p_saturation(t_prev)) - total_enthalpy) ** 2
+            total_pressure - relative_humidity * find_p_saturation(t_prev)) - total_enthalpy) ** 2
     gradient = 2 * (1.005 * t_prev + (1.88 * t_prev + 2501.4) * relative_humidity * find_p_saturation(t_prev) / (
-                total_pressure - relative_humidity * find_p_saturation(t_prev)) - total_enthalpy) * (
-                           1.005 + (1.88 * t_prev + 2501.4) * relative_humidity * total_pressure * deriv_p_saturation(
-                       t_prev) / (total_pressure - relative_humidity * find_p_saturation(
-                       t_prev)) ** 2 + 1.88 * relative_humidity * find_p_saturation(t_prev) / (
-                                       total_pressure - relative_humidity * find_p_saturation(t_prev)))
+            total_pressure - relative_humidity * find_p_saturation(t_prev)) - total_enthalpy) * (
+                       1.005 + (1.88 * t_prev + 2501.4) * relative_humidity * total_pressure * deriv_p_saturation(
+                   t_prev) / (total_pressure - relative_humidity * find_p_saturation(
+                   t_prev)) ** 2 + 1.88 * relative_humidity * find_p_saturation(t_prev) / (
+                               total_pressure - relative_humidity * find_p_saturation(t_prev)))
 
     return t_prev - difference_squared / gradient
 
@@ -608,7 +664,7 @@ def find_dry_bulb_temperature_RH_enthalpy(relative_humidity: float, total_enthal
     calculated value of total enthalpy and the actual known value is computed. 
     Then, using t_dry_bulb_step, the next guess is calculated until the
     difference between the previous guess and next iteration is less than the
-    specified decimal presision (10 ** -precision).
+    specified decimal precision (10 ** -precision).
     
 
     Parameters
@@ -621,10 +677,10 @@ def find_dry_bulb_temperature_RH_enthalpy(relative_humidity: float, total_enthal
         Sum of partial pressures in ambient environment. Pressure must have 
         units of [Pa]. The default is 101325.
     precision : int, optional
-        Denotes the requested presicion of answer. The default is 5. Avoid 
+        Denotes the requested precision of answer. The default is 5. Avoid
         precisions above 10 to reduce script runtime.
     trial_temp : float, optional
-         Initial guess for dew point temperature. Must be in units of [C]. The 
+        Initial guess for dew point temperature. Must be in units of [C]. The
         default is 50.
 
     Returns
@@ -698,7 +754,7 @@ def find_specific_volume(humidity_ratio: float, air_temp: float, total_pressure:
         Air temperature (dry_bulb). Must be supplied in [C] because unit 
         conversion will be performed later.
     total_pressure : float, optional
-        Sum of partial pressures of dry air and water vaopr mixed with it to 
+        Sum of partial pressures of dry air and water vapor mixed with it to
         make 1 kg. Must be in units of [Pa]. The default is 101325.
 
     Returns
@@ -731,7 +787,7 @@ def find_humidity_ratio_from_specific_vol_and_temp(specific_volume: float, air_t
         Air temperature (dry_bulb). Must be supplied in [C] because unit
         conversion will be performed later.
     total_pressure : float, optional
-        Sum of partial pressures of dry air and water vaopr mixed with it to
+        Sum of partial pressures of dry air and water vapor mixed with it to
         make 1 kg. Must be in units of [Pa]. The default is 101325.
 
     Returns
@@ -775,7 +831,18 @@ def find_dry_bulb_temperature(enthalpy: float, humidity_ratio: float) -> float:
     return (enthalpy - 2501.4 * humidity_ratio) / (1.005 + 1.88 * humidity_ratio)
 
 
-def find_wet_bulb_temperature(enthalpy: float, air_temp: float, total_pressure: float = 101325) -> float:
+def t_wet_bulb_step(t_prev: float, enthalpy: float, total_pressure: float = 101325) -> float:
+    difference_squared = ((enthalpy - 2501.4 * find_saturation_humidity_ratio(t_prev, total_pressure)) / (
+            1.005 + 1.88 * find_saturation_humidity_ratio(t_prev, total_pressure)) - t_prev) ** 2
+    gradient = 2 * ((enthalpy - 2501.4 * find_saturation_humidity_ratio(t_prev, total_pressure)) / (
+            1.005 + 1.88 * find_saturation_humidity_ratio(t_prev, total_pressure)) - t_prev) * (
+                       -(2513.907 + 1.88 * enthalpy) * deriv_h_sat(t_prev, total_pressure) / (
+                       1.005 + 1.88 * find_saturation_humidity_ratio(t_prev, total_pressure)) ** 2)
+    return t_prev - difference_squared / gradient
+
+
+def find_wet_bulb_temperature(total_enthalpy: float, total_pressure: float = 101325, precision: int = 5,
+                              trial_temp: float = 50) -> float:
     """Function to find the wet bulb temperature.
     
     This function uses the equation for total enthalpy solved for temperature.
@@ -789,13 +856,17 @@ def find_wet_bulb_temperature(enthalpy: float, air_temp: float, total_pressure: 
 
     Parameters
     ----------
-    enthalpy : float
+    total_enthalpy : float
         Total enthalpy of the air/water vapor mix reported in [kJ/kg dry air].
-    air_temp : float
-        Dry bulb temperature of the air given in [C].
     total_pressure : float, optional
-        Sum of partial pressures of dry air and water vaopr mixed with it to 
+        Sum of partial pressures of dry air and water vapor mixed with it to
         make 1 kg. Must be in units of [Pa]. The default is 101325.
+    precision : int, optional
+        Denotes the requested precision of answer. The default is 5. Avoid
+        precisions above 10 to reduce script runtime.
+    trial_temp : float, optional
+        Initial guess for dew point temperature. Must be in units of [C]. The
+        default is 50.
 
     Returns
     -------
@@ -804,10 +875,18 @@ def find_wet_bulb_temperature(enthalpy: float, air_temp: float, total_pressure: 
         0 C.
 
     """
-    humidity_ratio_saturation = find_saturation_humidity_ratio(air_temp, p_total=total_pressure)
-    return (enthalpy - 2501.4 * humidity_ratio_saturation) / (1.005 + 1.88 * humidity_ratio_saturation)
+
+    t_next = t_wet_bulb_step(trial_temp, total_enthalpy, total_pressure)
+
+    while abs(t_next - trial_temp) > 10 ** (-precision):
+        trial_temp = t_next
+        t_next = t_wet_bulb_step(trial_temp, total_enthalpy, total_pressure)
+
+    return trial_temp
 
 
-def find_dry_bulb_temperature_WB_enthalpy(wet_bulb_temp: float, enthalpy: float, total_pressure: float=101325, precision: int=5, trial_temp: float=50) -> float:
-    saturation_vapor_pressure = total_pressure * 28.97 * (enthalpy - 1.005 * wet_bulb_temp) / (28.97 * (enthalpy - 1.005 * wet_bulb_temp) + 18.02 * (1.88 * wet_bulb_temp + 2501.4))
+def find_dry_bulb_temperature_WB_enthalpy(wet_bulb_temp: float, enthalpy: float, total_pressure: float = 101325,
+                                          precision: int = 5, trial_temp: float = 50) -> float:
+    saturation_vapor_pressure = total_pressure * 28.97 * (enthalpy - 1.005 * wet_bulb_temp) / (
+            28.97 * (enthalpy - 1.005 * wet_bulb_temp) + 18.02 * (1.88 * wet_bulb_temp + 2501.4))
     return find_dew_point_temperature(saturation_vapor_pressure, precision, trial_temp)

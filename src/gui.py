@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout
 )
 
-from exceptions import PointNotDefinedException
+from exceptions import PointNotDefinedException, InvalidParamsException
 from psychrometric_chart import PsychrometricProperties
 
 class QInputBox(QLineEdit):
@@ -112,7 +112,7 @@ class AppWindow(QMainWindow):
             param_row_layouts_list[i].addWidget(param_widgets_list[i])
             self.input_boxes[i].setFixedWidth(100)
             param_row_layouts_list[i].addWidget(self.input_boxes[i])
-            unit_widgets_list[i].setFixedWidth(100)
+            unit_widgets_list[i].setFixedWidth(120)
             param_row_layouts_list[i].addWidget(unit_widgets_list[i])
 
             # Add parameter row to column on the left
@@ -169,13 +169,19 @@ class AppWindow(QMainWindow):
                 else:
                     params_dict[input_box.property_name] = float(input_box.text())
 
+        # For debugging:
         print(params_dict)
 
+        point_defined = False
         try:
             psy_point = PsychrometricProperties(**params_dict)
+            point_defined = True
+        except PointNotDefinedException:
+            self.dialogue_box.setText("Not enough information provided.")
+        except InvalidParamsException as exception:
+            self.dialogue_box.setText(exception.message)
 
-            print(psy_point.partial_pressure_vapor)
-
+        if point_defined:
             for input_box in self.input_boxes:
                 if input_box.text() == "":
                     if input_box.property_name == 'dry_bulb_temperature':
@@ -200,8 +206,7 @@ class AppWindow(QMainWindow):
                         input_box.setText(str(round(psy_point.specific_heat_capacity, 2)))
 
             self.dialogue_box.setText("Calculated!")
-        except PointNotDefinedException:
-            self.dialogue_box.setText("Not enough information provided.")
+
 
 psy_chart_app = QApplication(sys.argv)
 
