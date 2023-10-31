@@ -193,11 +193,11 @@ class AppWindow(QMainWindow):
                     elif input_box.property_name == 'total_pressure':
                         input_box.setText(str(round(psy_point.total_pressure, 2)))
                     elif input_box.property_name == 'humidity_ratio':
-                        input_box.setText(str(round(psy_point.humidity_ratio, 4)))
+                        input_box.setText(str(round(psy_point.humidity_ratio, 5)))
                     elif input_box.property_name == 'relative_humidity':
                         input_box.setText(str(round(psy_point.relative_humidity * 100, 2)))
                     elif input_box.property_name == 'total_enthalpy':
-                        input_box.setText(str(round(psy_point.total_enthalpy, 2)))
+                        input_box.setText(str(round(psy_point.total_enthalpy, 3)))
                     elif input_box.property_name == 'partial_pressure_vapor':
                         input_box.setText(str(round(psy_point.partial_pressure_vapor, 2)))
                     elif input_box.property_name == 'specific_volume':
