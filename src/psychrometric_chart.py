@@ -126,14 +126,22 @@ class PsychrometricProperties:
         if self.total_pressure is not None:
             criterion_1 = True
 
-        properties_known = sum(x is not None for x in criterion_2_properties)
+        num_properties_known = sum(x is not None for x in criterion_2_properties)
         if self.wet_bulb_temperature is not None and self.total_enthalpy is not None:
-            properties_known -= 1
+            num_properties_known -= 1
 
-        if self.humidity_ratio is not None and self.partial_pressure_vapor is not None:
-            properties_known -= 1
+        humidity_ratio_equivalencies = [self.humidity_ratio,
+                                        self.partial_pressure_vapor,
+                                        self.dew_point_temperature,
+                                        self.specific_heat_capacity]
 
-        if properties_known >= 2:
+        num_redundancies = sum(x is not None for x in humidity_ratio_equivalencies) - 1
+        if num_redundancies == -1:
+            num_redundancies = 0
+
+        num_properties_known -= num_redundancies
+
+        if num_properties_known >= 2:
             criterion_2 = True
 
         return criterion_1 and criterion_2
