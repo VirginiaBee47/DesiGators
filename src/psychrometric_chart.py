@@ -658,7 +658,7 @@ def t_dry_bulb_step(t_prev: float, relative_humidity: float, total_enthalpy: flo
     Parameters
     ----------
     t_prev : float
-        Previous guess for dew point temperature. Must be in units of [C].
+        Previous guess for dry bulb temperature. Must be in units of [C].
     relative_humidity : float
         Relative humidity provided as a decimal on the interval [0,1].
     total_enthalpy : float
@@ -670,7 +670,7 @@ def t_dry_bulb_step(t_prev: float, relative_humidity: float, total_enthalpy: flo
     Returns
     -------
     float
-        Optimized next guess for dew point temperature. Provided in units of 
+        Optimized next guess for dry bulb temperature. Provided in units of 
         [C].
 
     """
@@ -866,6 +866,31 @@ def find_dry_bulb_temperature(enthalpy: float, humidity_ratio: float) -> float:
 
 
 def t_wet_bulb_step(t_prev: float, enthalpy: float, total_pressure: float = 101325) -> float:
+    """Function to find the optimal step for wet bulb temperature calculation
+    
+    This function uses a square difference and derivative function to find the
+    optimal next step in temperature for wet bulb temperature calculation. 
+    Because the step size is proportional to the slope of the squared 
+    difference function, the steps get smaller as the guess approaches the 
+    actual value for dry bulb temperature.
+
+    Parameters
+    ----------
+    t_prev : float
+        Previous guess for wet bulb temperature. Must be in units of [C].
+    enthalpy : float
+        Total enthalpy of the air/water vapor mix in units of [kJ/kg dry air].
+    total_pressure : float, optional
+        Sum of partial pressures in ambient environment. Pressure must have 
+        units of [Pa]. The default is 101325.
+
+    Returns
+    -------
+    float
+        Optimized next guess for wet bulb temperature. Provided in units of 
+        [C].
+
+    """
     difference_squared = ((enthalpy - 2501.4 * find_saturation_humidity_ratio(t_prev, total_pressure)) / (
             1.005 + 1.88 * find_saturation_humidity_ratio(t_prev, total_pressure)) - t_prev) ** 2
     gradient = 2 * ((enthalpy - 2501.4 * find_saturation_humidity_ratio(t_prev, total_pressure)) / (
@@ -920,6 +945,31 @@ def find_wet_bulb_temperature(total_enthalpy: float, total_pressure: float = 101
 
 
 def find_humidity_ratio_from_enthalpy_specific_vol(enthalpy: float, specific_vol: float, p_total: float=101325) -> float:
+    """Another function to find humidity ratio.
+
+    Parameters
+    ----------
+    enthalpy : float
+        Total enthalpy of the air/water vapor mix reported in [kJ/kg dry air].
+    specific_vol : float
+        Specific volume of air/water vapor mixture at a given ambient pressure.
+        Provided in units of [m^3/kg].
+    p_total : float, optional
+        Sum of partial pressures in ambient environment. Pressure must have 
+        units of [Pa]. The default is 101325.
+
+    Raises
+    ------
+    ValueError
+        If no positive solution is found, raise a value error to signal bad 
+        input.
+
+    Returns
+    -------
+    float
+        Humidity ratio of the air in units of [kg water/kg dry air].
+
+    """
     A = -917445.4546
     B = -443931.5841 + 461.520 * enthalpy - 1.88 * p_total * specific_vol
     C = 78800.535 + 287.052874 * enthalpy - 1.005 * p_total * specific_vol
@@ -936,6 +986,7 @@ def find_humidity_ratio_from_enthalpy_specific_vol(enthalpy: float, specific_vol
 
 
 def find_dry_bulb_temperature_RH_p_vapor(relative_humidity: float, p_vapor: float) -> float:
+    
     return find_dew_point_temperature(p_vapor * relative_humidity)
 
 
