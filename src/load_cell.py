@@ -30,3 +30,7 @@ def main():
     while True:
         print(str(cell.take_measurement()))
         sleep(2)
+
+
+if __name__ == '__main__':
+    main()
