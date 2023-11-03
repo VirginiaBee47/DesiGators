@@ -18,8 +18,12 @@ class LoadCell(hx711.HX711):
 
     def take_measurement(self) -> float:
         measurement = sum(self.get_raw_data(3)) / 3
-        measurement -= self.offset
         return measurement
+
+    def get_mass(self) -> float:
+        measurement = self.take_measurement()
+        mass = self.m * measurement + self.b
+        return mass
 
     def calibrate(self) -> None:
         calibrating = True
@@ -62,6 +66,9 @@ def main():
     cell = LoadCell(12, 23)
     sleep(1)
     cell.calibrate()
+    while True:
+        print("Current mass: %f" % cell.get_mass())
+        sleep(2.5)
 
 
 if __name__ == '__main__':
