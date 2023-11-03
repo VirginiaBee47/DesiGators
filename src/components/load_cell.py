@@ -1,4 +1,5 @@
 from time import sleep
+from numpy import polyfit
 
 import hx711
 
@@ -6,7 +7,8 @@ import hx711
 class LoadCell(hx711.HX711):
     def __init__(self, data_pin: int, clock_pin: int, gain: int=128, channel: str='A'):
         super().__init__(data_pin, clock_pin, gain, channel)
-        self.offset = 0
+        self.m = None
+        self.b = None
 
     def tare(self, sample_size: int=25):
         readings = self.get_raw_data(sample_size)
@@ -45,11 +47,15 @@ class LoadCell(hx711.HX711):
                 calibration_data[0].append(self.take_measurement())
                 calibration_data[1].append(working_mass)
 
-            if input("Do you wish to continue? [Y/N] ") == "N":
+            if (ans := input("Do you wish to continue? [Y/N] ").lower()) == "n":
                 calibrating = False
+            elif ans == 'no':
+                calibrating = False
+            elif ans != 'y':
+                print("Answer interpreted as \'yes\'")
 
-        for i in range(len(calibration_data[0])):
-            print(calibration_data[0][i], calibration_data[1][i], sep='---')
+        self.m, self.b = polyfit(calibration_data[0], calibration_data[1], 1)
+        print("Regression Equation: y = %f*x = %f" % (self.m, self.b))
 
 
 def main():
