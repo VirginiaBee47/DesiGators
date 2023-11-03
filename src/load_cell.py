@@ -55,11 +55,7 @@ class LoadCell(hx711.HX711):
 def main():
     cell = LoadCell(12, 23)
     sleep(1)
-    while True:
-        input("Press the enter key to continue...")
-        for i in range(10):
-            print(i, str(cell.take_measurement()))
-        sleep(2)
+    cell.calibrate()
 
 
 if __name__ == '__main__':
