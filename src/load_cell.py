@@ -19,6 +19,38 @@ class LoadCell(hx711.HX711):
         measurement -= self.offset
         return measurement
 
+    def calibrate(self) -> None:
+        calibrating = True
+        input("Ensure that 0 mass is on the scale, then press enter.")
+        working_mass = 0
+
+        calibration_data = [[],[]]
+
+        for i in range(10):
+            calibration_data[0].append(self.take_measurement())
+            calibration_data[1].append(working_mass)
+
+        while calibrating:
+            working_mass_accepted = False
+
+            while not working_mass_accepted:
+                try:
+                    working_mass = int(input("Add a known mass onto the scale.\nMass: "))
+                    working_mass_accepted = True
+                except Exception:
+                    print("Not a valid mass...")
+
+            print("Do not disturb the scale during meausurement...")
+            for i in range(10):
+                calibration_data[0].append(self.take_measurement())
+                calibration_data[1].append(working_mass)
+
+            if input("Do you wish to continue? [Y/N] ") == "N":
+                calibrating = False
+
+        for i in range(len(calibration_data[0])):
+            print(calibration_data[0][i], calibration_data[1][i], sep='---')
+
 
 def main():
     cell = LoadCell(12, 23)
