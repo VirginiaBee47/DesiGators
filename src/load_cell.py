@@ -23,12 +23,10 @@ class LoadCell(hx711.HX711):
 def main():
     cell = LoadCell(12, 23)
     sleep(1)
-    print("Taring Load Cell...")
-    cell.tare()
-    print("Load cell offset: %i" % cell.offset)
-    sleep(1)
     while True:
-        print(str(cell.take_measurement()))
+        input("Press the enter key to continue...")
+        for i in range(10):
+            print(i, str(cell.take_measurement()))
         sleep(2)
 
 
