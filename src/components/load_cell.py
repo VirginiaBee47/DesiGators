@@ -5,8 +5,17 @@ import hx711
 
 
 class LoadCell(hx711.HX711):
-    def __init__(self, data_pin: int, clock_pin: int, gain: int=128, channel: str='A'):
+    def __init__(self, data_pin: int, clock_pin: int, gain: int=128, channel: str='A', chamber: int=1, side: str='L'):
         super().__init__(data_pin, clock_pin, gain, channel)
+
+        if chamber not in [1, 2, 3, 4]:
+            raise ValueError("Chamber parameter must be one of [1,2,3,4].")
+
+        if str(side).upper() not in ['L', 'R']:
+            raise ValueError("Side parameter must equal 'L' or 'R'")
+
+        self.id = str(chamber) + str(side).upper()
+
         self.m = None
         self.b = None
 
