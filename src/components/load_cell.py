@@ -1,5 +1,6 @@
 from time import sleep
 from numpy import polyfit
+from os.path import exists
 
 import hx711
 
@@ -71,13 +72,40 @@ class LoadCell(hx711.HX711):
         print("Regression Equation: y = %f*x = %f" % (self.m, self.b))
 
 
+class LoadCellArray:
+    def __init__(self, cells: list=None):
+        # "cells" should be a list of LoadCell objects with their chambers and sides defined. __init__ will convert it
+        # into the proper hierarchy.
+        self.cells = [[],[],[],[]]
+
+        if cells is not None:
+            for cell in cells:
+                # if...else... determines index within chamber list
+                # last line inserts into proper chamber based on cell.id param
+                if cell.id[1] == 'L':
+                    index = 0
+                else:
+                    index = 1
+                self.cells[int(cell.id[0]) - 1].insert(index, cell)
+
+    def save_array(self):
+        with open('cache/load_cells.txt', 'w') as file:
+            for chamber in self.cells:
+                for cell in chamber:
+                    write_str = str(cell.data_pin) + ',' + str(cell.clock_pin + ',' + str(cell.gain)) + ',' + str(cell.channel) + ',' + str(cell.id) + ',' + str(cell.m) + ',' + str(cell.b) + '|'
+                    file.write(write_str)
+
+    def load_array(self):
+        pass
+
+
 def main():
-    cell = LoadCell(12, 23)
-    sleep(1)
-    cell.calibrate()
-    while True:
-        print("Current mass: %f" % cell.get_mass())
-        sleep(2.5)
+    cell1 = LoadCell(12, 23, chamber=1, side='R')
+    cell2 = LoadCell(13, 23, chamber=1, side='L')
+    cell3 = LoadCell(14, 23, chamber=2, side='L')
+
+    load_cell_array = LoadCellArray([cell1, cell2, cell3])
+    load_cell_array.save_array()
 
 
 if __name__ == '__main__':
