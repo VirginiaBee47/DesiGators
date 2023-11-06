@@ -15,6 +15,11 @@ class LoadCell(hx711.HX711):
         if str(side).upper() not in ['L', 'R']:
             raise ValueError("Side parameter must equal 'L' or 'R'")
 
+        self.data_pin = data_pin
+        self.clock_pin = clock_pin
+        self.gain = gain
+        self.channel = channel
+
         self.id = str(chamber) + str(side).upper()
 
         self.m = None
