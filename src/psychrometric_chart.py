@@ -992,14 +992,93 @@ def find_humidity_ratio_from_enthalpy_specific_vol(enthalpy: float, specific_vol
 
 
 def find_dry_bulb_temperature_RH_p_vapor(relative_humidity: float, p_vapor: float) -> float:
+    """Simple wrapper function to handle RH & P_vapor
+    
+    This function performs the same task conceptually as finding the dew point
+    temperature of the air, but with a non-saturation p_water_vapor. This is
+    useful since an entire new function is not necessary.
+
+    Parameters
+    ----------
+    relative_humidity : float
+        Percentage of the maximum (saturation) vapor pressure of water 
+        actually present in the air/water vapor mixture. Expressed as a decimal
+        0 <= RH <= 1 and unitless.
+    p_vapor : float
+        Partial pressure of water vapor in the air. Must be entered in units
+        of [Pa].
+
+    Returns
+    -------
+    float
+        Answer is dry bulb temperature of the air provided in units of [C].
+
+    """
     return find_dew_point_temperature(p_vapor * relative_humidity)
 
 
 def find_dry_bulb_temperature_specific_vol_H(specific_vol: float, humidity_ratio: float, p_total: float=101325) -> float:
+    """Rearranged equation for specific volume solved for temperature.
+    
+    This function returns the dry bulb temperature of an air/water vapor
+    mixture without requiring an iterative solution. Specific volume of the gas
+    and humidity ratio must be known.
+    
+    Parameters
+    ----------
+    specific_vol : float
+        Specific volume of the air/water vapor mixture. This represents the 
+        volume that one kilogram of the gas will occupy at the specified total 
+        pressure. Must be supplied in units of [m^3/kg].
+    humidity_ratio : float
+        Humidity ratio (or absolute humidity) of the air/water vapor mixture. 
+        This represents the mass of water vapor in a given mass of dry air. 
+        Must be provided in units of [kg water/kg dry air].
+    p_total : float, optional
+        Total pressure of the gas in question. Usually atmospheric pressure, 
+        as denoted by the default value, but can also be higher or lower for 
+        other applications. Must be supplied in units of [Pa]. The default is
+        101325.
+        
+    """
     return specific_vol * p_total / (287.052874 + 461.520 * humidity_ratio) - 273.15
 
 
 def t_dry_bulb_specific_vol_step(t_prev: float, specific_vol: float, relative_humidity: float, p_total: float=101325) -> float:
+    """Function to find the optimized next step for specific dry bulb temp calculation.
+    
+    This function utilizes gradient descent to find the optimized next guess 
+    temperature when calculating dry bulb temperature based on specific volume
+    and relative humidity. Because relative humidity involves the saturation 
+    vapor pressure equation, there is no clean way to separate and solve the 
+    equation for temperature. Thus, it is necessary to "guess and check" with
+    values of temperature which approach the desired value.
+    
+    Parameters
+    ----------
+    t_prev : float
+        Previous guess for dry bulb temperature. Must be in units of [C].
+    specific_vol : float
+        Specific volume of the air/water vapor mixture. This represents the 
+        volume that one kilogram of the gas will occupy at the specified total 
+        pressure. Must be supplied in units of [m^3/kg].
+    relative_humidity : float
+        Percentage of the maximum (saturation) vapor pressure of water 
+        actually present in the air/water vapor mixture. Expressed as a decimal
+        0 <= RH <= 1 and unitless.
+    p_total : float, optional
+        Total pressure of the gas in question. Usually atmospheric pressure, 
+        as denoted by the default value, but can also be higher or lower for 
+        other applications. Must be supplied in units of [Pa]. The default is
+        101325.
+
+    Returns
+    -------
+    float
+        Optimized next step for dry bulb temperature. Answer provided in units 
+        of [C].
+
+    """
     difference_squared = (specific_vol / R_dry_air - (t_prev + 273.15) / (p_total - relative_humidity * find_p_saturation(t_prev))) ** 2
     gradient = 2 * (specific_vol / R_dry_air - (t_prev + 273.15) / (p_total - relative_humidity * find_p_saturation(t_prev))) * ((relative_humidity * find_p_saturation(t_prev) - p_total - t_prev * relative_humidity * deriv_p_saturation(t_prev) - 273.15 * relative_humidity * deriv_p_saturation(t_prev)) / (p_total - relative_humidity * find_p_saturation(t_prev)) ** 2)
 
@@ -1007,6 +1086,35 @@ def t_dry_bulb_specific_vol_step(t_prev: float, specific_vol: float, relative_hu
 
 
 def find_dry_bulb_temperature_specific_vol_RH(specific_vol: float, relative_humidity: float, p_total: float=101325, precision: int=5, trial_temp: float=50) -> float:
+    """Function to find the dry bulb temperature.
+    
+    This function uses gradient descent (through the step function 
+    "t_dry_bulb_specific_vol_step") to find the dry bulb temperature of an 
+    air/water vapor mixture.
+    
+    Parameters
+    ----------
+    specific_vol : float
+        Specific volume of the air/water vapor mixture. This represents the 
+        volume that one kilogram of the gas will occupy at the specified total 
+        pressure. Must be supplied in units of [m^3/kg].
+    relative_humidity : float
+        Percentage of the maximum (saturation) vapor pressure of water 
+        actually present in the air/water vapor mixture. Expressed as a decimal
+        0 <= RH <= 1 and unitless.
+    p_total : float, optional
+        Total pressure of the gas in question. Usually atmospheric pressure, 
+        as denoted by the default value, but can also be higher or lower for 
+        other applications. Must be supplied in units of [Pa]. The default is
+        101325.
+    precision : int, optional
+        Denotes the requested precision of answer. The default is 5. Avoid
+        precisions above 10 to reduce script runtime.
+    trial_temp : float, optional
+        Initial guess for dew point temperature. Must be in units of [C]. The
+        default is 50.
+    
+    """
     t_next = t_dry_bulb_specific_vol_step(trial_temp, specific_vol, relative_humidity, p_total)
 
     while abs(t_next - trial_temp) > 10 ** (-precision):
