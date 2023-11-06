@@ -97,7 +97,7 @@ class LoadCellArray:
         with open('cache/load_cells.txt', 'w') as file:
             for chamber in self.cells:
                 for cell in chamber:
-                    write_str = str(cell.data_pin) + ',' + str(cell.clock_pin + ',' + str(cell.gain)) + ',' + str(cell.channel) + ',' + str(cell.id) + ',' + str(cell.m) + ',' + str(cell.b) + '|'
+                    write_str = str(cell.data_pin) + ',' + str(cell.clock_pin) + ',' + str(cell.gain) + ',' + str(cell.channel) + ',' + str(cell.id) + ',' + str(cell.m) + ',' + str(cell.b) + '|'
                     file.write(write_str)
 
     def load_array(self):
