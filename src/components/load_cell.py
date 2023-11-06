@@ -103,14 +103,26 @@ class LoadCellArray:
     def load_array(self):
         pass
 
+    def take_measurement(self) -> list:
+        data = [[],[],[],[]]
+
+        for chamber in range(len(self.cells)):
+            for cell in chamber:
+                mass = cell.get_mass()
+                data[chamber].append(mass)
+
+        return data
+
 
 def main():
     cell1 = LoadCell(12, 23, chamber=1, side='R')
     cell2 = LoadCell(13, 23, chamber=1, side='L')
-    cell3 = LoadCell(14, 23, chamber=2, side='L')
 
-    load_cell_array = LoadCellArray([cell1, cell2, cell3])
+    load_cell_array = LoadCellArray([cell2, cell1])
     load_cell_array.save_array()
+
+    while True:
+        print(str(load_cell_array.take_measurement()))
 
 
 if __name__ == '__main__':
