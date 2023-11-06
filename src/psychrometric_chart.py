@@ -324,7 +324,13 @@ class PsychrometricProperties:
 
         # Case 11: Relative Humidity and Specific Volume known:
         elif self.relative_humidity is not None and self.specific_volume is not None:
-            pass
+            self.dry_bulb_temperature = find_dry_bulb_temperature_specific_vol_RH(self.specific_volume, self.relative_humidity, self.total_pressure)
+            self.humidity_ratio = find_humidity_ratio_from_RH_temp(self.relative_humidity, self.dry_bulb_temperature, self.total_pressure)
+            self.total_enthalpy = find_total_enthalpy(self.dry_bulb_temperature, self.humidity_ratio)
+            self.wet_bulb_temperature = find_wet_bulb_temperature(self.total_enthalpy, self.total_pressure)
+            self.specific_heat_capacity = find_specific_heat(self.humidity_ratio)
+            self.partial_pressure_vapor = find_p_water_vapor_from_humidity_ratio(self.humidity_ratio, self.total_pressure)
+            self.dew_point_temperature = find_dew_point_temperature(self.partial_pressure_vapor)
 
 
 def find_p_saturation(air_temp: float) -> float:
@@ -986,9 +992,25 @@ def find_humidity_ratio_from_enthalpy_specific_vol(enthalpy: float, specific_vol
 
 
 def find_dry_bulb_temperature_RH_p_vapor(relative_humidity: float, p_vapor: float) -> float:
-    
     return find_dew_point_temperature(p_vapor * relative_humidity)
 
 
 def find_dry_bulb_temperature_specific_vol_H(specific_vol: float, humidity_ratio: float, p_total: float=101325) -> float:
     return specific_vol * p_total / (287.052874 + 461.520 * humidity_ratio) - 273.15
+
+
+def t_dry_bulb_specific_vol_step(t_prev: float, specific_vol: float, relative_humidity: float, p_total: float=101325) -> float:
+    difference_squared = (specific_vol / R_dry_air - (t_prev + 273.15) / (p_total - relative_humidity * find_p_saturation(t_prev))) ** 2
+    gradient = 2 * (specific_vol / R_dry_air - (t_prev + 273.15) / (p_total - relative_humidity * find_p_saturation(t_prev))) * ((relative_humidity * find_p_saturation(t_prev) - p_total - t_prev * relative_humidity * deriv_p_saturation(t_prev) - 273.15 * relative_humidity * deriv_p_saturation(t_prev)) / (p_total - relative_humidity * find_p_saturation(t_prev)) ** 2)
+
+    return t_prev - difference_squared / gradient
+
+
+def find_dry_bulb_temperature_specific_vol_RH(specific_vol: float, relative_humidity: float, p_total: float=101325, precision: int=5, trial_temp: float=50) -> float:
+    t_next = t_dry_bulb_specific_vol_step(trial_temp, specific_vol, relative_humidity, p_total)
+
+    while abs(t_next - trial_temp) > 10 ** (-precision):
+        trial_temp = t_next
+        t_next = t_dry_bulb_specific_vol_step(trial_temp, specific_vol, relative_humidity, p_total)
+
+    return trial_temp
