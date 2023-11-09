@@ -6,7 +6,7 @@ import hx711
 
 
 class LoadCell(hx711.HX711):
-    def __init__(self, data_pin: int, clock_pin: int, gain: int=128, channel: str='A', chamber: int=1, side: str='L'):
+    def __init__(self, data_pin: int, clock_pin: int, gain: int=128, channel: str='A', chamber: int=1, side: str='L', m: float=None, b: float=None):
         super().__init__(data_pin, clock_pin, gain, channel)
 
         if chamber not in [1, 2, 3, 4]:
@@ -22,8 +22,8 @@ class LoadCell(hx711.HX711):
 
         self.id = str(chamber) + str(side).upper()
 
-        self.m = None
-        self.b = None
+        self.m = m
+        self.b = b
 
     def tare(self, sample_size: int=25):
         readings = self.get_raw_data(sample_size)
@@ -93,15 +93,42 @@ class LoadCellArray:
                     index = 1
                 self.cells[int(cell.id[0]) - 1].insert(index, cell)
 
-    def save_array(self):
+    def save_array(self) -> None:
         with open('cache/load_cells.txt', 'w') as file:
             for chamber in self.cells:
                 for cell in chamber:
                     write_str = str(cell.data_pin) + ',' + str(cell.clock_pin) + ',' + str(cell.gain) + ',' + str(cell.channel) + ',' + str(cell.id) + ',' + str(cell.m) + ',' + str(cell.b) + '|'
                     file.write(write_str)
+            file.close()
 
-    def load_array(self):
-        pass
+    def load_array(self) -> None:
+        with open('cache/load_cells.txt', 'r') as file:
+            data_string = file.read()
+            file.close()
+
+        cells = data_string.split('|')
+        for i in range(len(cells)):
+            cells[i] = cells[i].split(',')
+            data_pin = int(cells[i][0])
+            clock_pin = int(cells[i][1])
+            gain = int(cells[i][2])
+            channel = cells[i][3]
+            chamber = int(cells[i][4][0])
+            side = cells[i][4][1]
+            if side == 'L':
+                index = 0
+            else:
+                index = 1
+
+            if cells[i][5] != "None":
+                m = cells[i][5]
+            else:
+                m = None
+            if cells[i][6] != "None":
+                b = cells[i][6]
+            else:
+                b = None
+            self.cells[chamber - 1].insert(index, LoadCell(data_pin, clock_pin, gain, channel, chamber, side, m, b))
 
     def take_measurement(self) -> list:
         data = [[],[],[],[]]
@@ -127,3 +154,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    
