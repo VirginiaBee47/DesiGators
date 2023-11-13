@@ -136,7 +136,7 @@ class LoadCellArray:
         chamber_num = 1
         for chamber in self.cells:
             for cell in chamber:
-                mass = cell.get_mass()
+                mass = cell.take_measurement()
                 data[chamber_num - 1].append(mass)
             chamber_num += 1
 
