@@ -277,6 +277,7 @@ class AppWindow(QMainWindow):
     def measurement_clicked(self):
         if not self.measuring:
             self.measuring = True
+            print(self.controls)
             self.measurement_handling()
         else:
             self.measuring = False
