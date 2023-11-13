@@ -173,7 +173,6 @@ class AppWindow(QMainWindow):
 
         measure_button = QPushButton("Start/Stop Measurement")
         measure_button.clicked.connect(self.measurement_clicked)
-        self.measuring = False
 
         # Defining the load cell array to be passed into the updater object
         load_cell_1 = LoadCell(12, 23, chamber=1, side='R')
@@ -197,7 +196,7 @@ class AppWindow(QMainWindow):
 
         self.threadpool = QThreadPool()
 
-        self.controls = {'measure_mass': self.measuring}
+        self.controls = {'measure_mass': False}
 
     def clear_clicked(self) -> None:
         for input_box in self.input_boxes:
@@ -275,12 +274,11 @@ class AppWindow(QMainWindow):
         self.threadpool.start(handler)
 
     def measurement_clicked(self):
-        if not self.measuring:
-            self.measuring = True
-            print(self.controls)
+        if not self.controls['measure_mass']:
+            self.controls['measure_mass'] = True
             self.measurement_handling()
         else:
-            self.measuring = False
+            self.controls['measure_mass'] = False
 
 
 
