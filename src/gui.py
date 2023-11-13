@@ -1,6 +1,12 @@
 import sys
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import (
+    Qt,
+    QRunnable,
+    QThreadPool,
+    QObject,
+    pyqtSignal
+)
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -14,12 +20,49 @@ from PyQt6.QtWidgets import (
 
 from exceptions import PointNotDefinedException, InvalidParamsException
 from psychrometric_chart import PsychrometricProperties
+from components.load_cell import LoadCell, LoadCellArray
+
 
 class QInputBox(QLineEdit):
     def __init__(self, property_name, *args, **kwargs):
         super(QLineEdit, self).__init__(*args, **kwargs)
 
         self.property_name = property_name
+
+
+class MassSignals(QObject):
+    """Signals associated with mass updating worker
+    finished signal has no associated type
+
+    result signal is a list of all the masses in LoadCellArray order
+    """
+
+    finished = pyqtSignal()
+    error = pyqtSignal()
+    result = pyqtSignal(list)
+
+
+class MassUpdater(QRunnable):
+    """Runnable Updater for Mass Readouts"""
+
+    def __init__(self, _cell_array: LoadCellArray, control):
+        super(MassUpdater, self).__init__()
+
+        self.control = control
+        self.signals = MassSignals
+        self._array = _cell_array
+
+    def run(self):
+        print("Thread started.")
+        try:
+            while self.control['measure_mass']:
+                readings = self._array.take_measurement()
+                self.signals.result.emit(readings)
+        except Exception as e:
+            self.signals.error.emit()
+        finally:
+            self.signals.finished.emit()
+        print("Thread completed.")
 
 
 class AppWindow(QMainWindow):
@@ -128,6 +171,15 @@ class AppWindow(QMainWindow):
         clear_button = QPushButton("Clear")
         clear_button.clicked.connect(self.clear_clicked)
 
+        measure_button = QPushButton("Start/Stop Measurement")
+        measure_button.clicked.connect(self.measurement_clicked)
+        self.measuring = False
+
+        # Defining the load cell array to be passed into the updater object
+        load_cell_1 = LoadCell(12, 23, chamber=1, side='R')
+        load_cell_2 = LoadCell(13, 23, chamber=1, side='L')
+        self.load_cell_array = LoadCellArray([load_cell_1, load_cell_2])
+
         button_layout = QHBoxLayout()
         button_layout.addWidget(calculate_button, 2)
         button_layout.addWidget(clear_button, 2)
@@ -141,6 +193,12 @@ class AppWindow(QMainWindow):
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
+
+        self.threadpool = QThreadPool()
+
+        self.controls = {'measure_mass': self.measuring}
+
+        self.measurement_handling()
 
     def clear_clicked(self) -> None:
         for input_box in self.input_boxes:
@@ -206,6 +264,24 @@ class AppWindow(QMainWindow):
                         input_box.setText(str(round(psy_point.specific_heat_capacity, 2)))
 
             self.dialogue_box.setText("Calculated!")
+
+    def show_new_masses(self, masses: list):
+        mass_string = ["Load Cell %i: %f" % (i+1, masses[i]) for i in range(len(masses))]
+        self.dialogue_box.setText(mass_string)
+
+    def measurement_handling(self):
+        handler = MassUpdater(self.load_cell_array, self.controls)
+        handler.signals.result.connect(self.show_new_masses)
+
+        self.threadpool.start(handler)
+
+    def measurement_clicked(self):
+        if not self.measuring:
+            self.measuring = True
+        else:
+            self.measuring = False
+
+
 
 
 psy_chart_app = QApplication(sys.argv)
