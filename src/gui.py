@@ -1,4 +1,5 @@
 import sys
+from time import sleep
 
 from PyQt6.QtCore import (
     Qt,
@@ -56,9 +57,11 @@ class MassUpdater(QRunnable):
         print("Thread started.")
         try:
             print(self.control)
-            while self.control['measure_mass']:
-                    readings = self._array.take_measurement()
-                    self.signals.result.emit(readings)
+            while self.control['measure_mass'] is True:
+                print("Reading...")
+                readings = self._array.take_measurement()
+                self.signals.result.emit(readings)
+                sleep(2)
         except Exception as e:
             self.signals.error.emit()
         finally:
