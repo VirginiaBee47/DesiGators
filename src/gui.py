@@ -49,7 +49,7 @@ class MassUpdater(QRunnable):
         super(MassUpdater, self).__init__()
 
         self.control = control
-        self.signals = MassSignals
+        self.signals = MassSignals()
         self._array = _cell_array
 
     def run(self):
