@@ -61,7 +61,7 @@ class MassUpdater(QRunnable):
                 break
             else:
                 print("Reading...")
-                readings = self._array.take_measurement()
+                print(readings := self._array.take_measurement())
                 self.signals.result.emit(readings)
                 sleep(2)
         print("Thread completed.")
@@ -266,6 +266,7 @@ class AppWindow(QMainWindow):
             self.dialogue_box.setText("Calculated!")
 
     def show_new_masses(self, masses: list):
+        print("show masses now")
         mass_string = ["Load Cell %i: %f" % (i+1, masses[i]) for i in range(len(masses))]
         self.dialogue_box.setText(mass_string)
 
