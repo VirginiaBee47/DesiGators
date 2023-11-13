@@ -56,8 +56,8 @@ class MassUpdater(QRunnable):
         print("Thread started.")
         try:
             while self.control['measure_mass']:
-                readings = self._array.take_measurement()
-                self.signals.result.emit(readings)
+                    readings = self._array.take_measurement()
+                    self.signals.result.emit(readings)
         except Exception as e:
             self.signals.error.emit()
         finally:
@@ -183,6 +183,7 @@ class AppWindow(QMainWindow):
         button_layout = QHBoxLayout()
         button_layout.addWidget(calculate_button, 2)
         button_layout.addWidget(clear_button, 2)
+        button_layout.addWidget(measure_button, 2)
 
         output_calc_layout.addWidget(self.dialogue_box, 75)
         output_calc_layout.addLayout(button_layout, 25)
@@ -197,8 +198,6 @@ class AppWindow(QMainWindow):
         self.threadpool = QThreadPool()
 
         self.controls = {'measure_mass': self.measuring}
-
-        self.measurement_handling()
 
     def clear_clicked(self) -> None:
         for input_box in self.input_boxes:
@@ -278,6 +277,7 @@ class AppWindow(QMainWindow):
     def measurement_clicked(self):
         if not self.measuring:
             self.measuring = True
+            self.measurement_handling()
         else:
             self.measuring = False
 
