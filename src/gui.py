@@ -55,6 +55,7 @@ class MassUpdater(QRunnable):
     def run(self):
         print("Thread started.")
         try:
+            print(self.control)
             while self.control['measure_mass']:
                     readings = self._array.take_measurement()
                     self.signals.result.emit(readings)
