@@ -133,10 +133,12 @@ class LoadCellArray:
     def take_measurement(self) -> list:
         data = [[],[],[],[]]
 
-        for chamber in range(len(self.cells)):
+        chamber_num = 1
+        for chamber in self.cells:
             for cell in chamber:
                 mass = cell.get_mass()
-                data[chamber].append(mass)
+                data[chamber_num - 1].append(mass)
+            chamber_num += 1
 
         return data
 
