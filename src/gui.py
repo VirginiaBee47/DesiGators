@@ -269,7 +269,7 @@ class AppWindow(QMainWindow):
     def show_new_masses(self, masses: list):
         print("show masses now")
         print(masses)
-        mass_string = ["Load Cell %i: %f" % (i+1, masses[i]) for i in range(len(masses))]
+        mass_string = '\n'.join(["Load Cell %i: %f" % (i+1, masses[i]) for i in range(len(masses))])
         self.dialogue_box.setText(mass_string)
 
     def measurement_handling(self):
