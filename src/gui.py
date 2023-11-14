@@ -204,8 +204,9 @@ class AppWindow(QMainWindow):
     def clear_clicked(self) -> None:
         for input_box in self.input_boxes:
             input_box.setText("")
-
-        self.dialogue_box.setText("Cleared!")
+            
+        if not self.controls['measure_mass']:
+            self.dialogue_box.setText("Cleared!")
 
     def calculate_clicked(self) -> None:
         self.dialogue_box.setText("")
@@ -264,7 +265,8 @@ class AppWindow(QMainWindow):
                     elif input_box.property_name == 'specific_heat_capacity':
                         input_box.setText(str(round(psy_point.specific_heat_capacity, 2)))
 
-            self.dialogue_box.setText("Calculated!")
+            if not self.controls['measure_mass']:
+                self.dialogue_box.setText("Calculated!")
 
     def show_new_masses(self, masses: list):
         print("show masses now")
