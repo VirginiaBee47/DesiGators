@@ -233,16 +233,15 @@ class AppWindow(QMainWindow):
         # For debugging:
         print(params_dict)
 
-        point_defined = False
+        psy_point = None
         try:
             psy_point = PsychrometricProperties(**params_dict)
-            point_defined = True
         except PointNotDefinedException:
             self.dialogue_box.setText("Not enough information provided.")
         except InvalidParamsException as exception:
             self.dialogue_box.setText(exception.message)
 
-        if point_defined:
+        if psy_point is not None:
             for input_box in self.input_boxes:
                 if input_box.text() == "":
                     if input_box.property_name == 'dry_bulb_temperature':
@@ -287,6 +286,10 @@ class AppWindow(QMainWindow):
             self.measurement_handling()
         else:
             self.controls['measure_mass'] = False
+
+    def closeEvent(self, event):
+        self.controls['measure_mass'] = False
+        event.accept()
 
 
 
