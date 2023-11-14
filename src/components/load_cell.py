@@ -140,6 +140,7 @@ class LoadCellArray:
                 data[chamber_num - 1].append(mass)
             chamber_num += 1
 
+        print(data)
         return data
 
 
