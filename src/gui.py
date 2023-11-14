@@ -178,8 +178,8 @@ class AppWindow(QMainWindow):
         measure_button.clicked.connect(self.measurement_clicked)
 
         # Defining the load cell array to be passed into the updater object
-        load_cell_1 = LoadCell(12, 23, chamber=1, side='R')
-        load_cell_2 = LoadCell(13, 23, chamber=1, side='L')
+        load_cell_1 = LoadCell(12, 20, chamber=1, side='R')
+        load_cell_2 = LoadCell(21, 20, chamber=1, side='L')
         self.load_cell_array = LoadCellArray([load_cell_1, load_cell_2])
 
         button_layout = QHBoxLayout()
