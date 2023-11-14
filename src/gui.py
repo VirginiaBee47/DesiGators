@@ -204,12 +204,13 @@ class AppWindow(QMainWindow):
     def clear_clicked(self) -> None:
         for input_box in self.input_boxes:
             input_box.setText("")
-            
+
         if not self.controls['measure_mass']:
             self.dialogue_box.setText("Cleared!")
 
     def calculate_clicked(self) -> None:
-        self.dialogue_box.setText("")
+        if not self.controls['measure_mass']:
+            self.dialogue_box.setText("")
 
         params_dict = {'dry_bulb_temperature': None,
                        'wet_bulb_temperature': None,
