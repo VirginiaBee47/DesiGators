@@ -61,6 +61,7 @@ class MassUpdater(QRunnable):
                 break
             else:
                 print("Reading...")
+                print(self._array.cells)
                 print(readings := [self._array.cells[0][0].take_measurement(), self._array.cells[0][1].take_measurement()])
                 self.signals.result.emit(readings)
                 sleep(2)
