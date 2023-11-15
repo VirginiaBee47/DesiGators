@@ -1,6 +1,7 @@
 import sys
-from time import sleep
+import numpy as np
 
+from time import sleep, time
 from PyQt6.QtCore import (
     Qt,
     QRunnable,
@@ -18,6 +19,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout
 )
+from pyqtgraph import PlotWidget, plot
 
 from exceptions import PointNotDefinedException, InvalidParamsException
 from psychrometric_chart import PsychrometricProperties
@@ -62,15 +64,21 @@ class MassUpdater(QRunnable):
             else:
                 print("Reading...")
                 print(self._array.cells)
-                print(readings := [self._array.cells[0][0].take_measurement(), self._array.cells[0][1].take_measurement()])
+                print(readings := self._array.take_measurement())
+                readings.insert(0,time())
                 self.signals.result.emit(readings)
-                sleep(2)
+                sleep(0.5)
+                self.signals.finished.emit()
+                sleep(1)
         print("Thread completed.")
 
 
 class AppWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super(AppWindow, self).__init__(*args, **kwargs)
+
+        self.mass_data = None
+        self.collection_start_time = None
 
         self.setWindowTitle("Psychrometric Calculator")
         layout = QHBoxLayout()
@@ -89,6 +97,7 @@ class AppWindow(QMainWindow):
 
         # Create 2 main columns
         params_layout = QVBoxLayout()
+        dialogue_plot_layout = QHBoxLayout()
         output_calc_layout = QVBoxLayout()
 
         param_widgets_list = []
@@ -164,12 +173,14 @@ class AppWindow(QMainWindow):
             # Add parameter row to column on the left
             params_layout.addLayout(param_row_layouts_list[i])
 
-        # Create output_calc_layout (layout including dialogue box for errors and button to calculate)
+        # Create output_calc_layout (layout including dialogue box for errors, plot, and button to calculate)
         self.dialogue_box = QLabel()
         self.dialogue_box.setStyleSheet("border: 1px solid black;")
 
         calculate_button = QPushButton("Calculate")
         calculate_button.clicked.connect(self.calculate_clicked)
+
+        self.mass_plot = PlotWidget()
 
         clear_button = QPushButton("Clear")
         clear_button.clicked.connect(self.clear_clicked)
@@ -187,7 +198,10 @@ class AppWindow(QMainWindow):
         button_layout.addWidget(clear_button, 2)
         button_layout.addWidget(measure_button, 2)
 
-        output_calc_layout.addWidget(self.dialogue_box, 75)
+        dialogue_plot_layout.addWidget(self.dialogue_box, 50)
+        dialogue_plot_layout.addWidget(self.mass_plot)
+
+        output_calc_layout.addLayout(dialogue_plot_layout, 75)
         output_calc_layout.addLayout(button_layout, 25)
 
         layout.addLayout(params_layout)
@@ -268,35 +282,55 @@ class AppWindow(QMainWindow):
             if not self.controls['measure_mass']:
                 self.dialogue_box.setText("Calculated!")
 
-    def show_new_masses(self, masses: list):
+    def show_new_masses(self, masses: list) -> None:
         print("show masses now")
         print(masses)
-        mass_string = '\n'.join(["Load Cell %i: %f" % (i+1, masses[i]) for i in range(len(masses))])
+        mass_string = '\n'.join(["Load Cell %i: %f" % (i + 1, masses[i]) for i in range(len(masses))])
         self.dialogue_box.setText(mass_string)
 
-    def measurement_handling(self):
+    def update_plot(self):
+        # This function needs a lot of work
+        # plot updating should occur in this function
+        x_axis = self.mass_data
+        y_axis = self.mass_data
+        self.mass_plot.plotItem()
+
+    def store_masses(self, data: list) -> None:
+        current_time = data.pop(0)
+        np.append(self.mass_data, [current_time - self.collection_start_time, *data])
+
+    def measurement_handling(self) -> None:
         handler = MassUpdater(self.load_cell_array, self.controls)
         handler.signals.result.connect(self.show_new_masses)
+        handler.signals.result.connect(self.store_masses)
+        handler.signals.finished.connect(self.update_plot)
 
         self.threadpool.start(handler)
 
-    def measurement_clicked(self):
+    def measurement_clicked(self) -> None:
         if not self.controls['measure_mass']:
             self.controls['measure_mass'] = True
+            self.collection_start_time = time()
+            self.mass_data = np.zeros()
             self.measurement_handling()
         else:
             self.controls['measure_mass'] = False
+            self.mass_data = None
 
     def closeEvent(self, event):
+        # Override the closeEvent method that exists and replace with controls editing to exit ongoing threads
         self.controls['measure_mass'] = False
         event.accept()
 
 
+def main() -> None:
+    psy_chart_app = QApplication(sys.argv)
+
+    window = AppWindow()
+    window.show()
+
+    psy_chart_app.exec()
 
 
-psy_chart_app = QApplication(sys.argv)
-
-window = AppWindow()
-window.show()
-
-psy_chart_app.exec()
+if __name__ == '__main__':
+    main()

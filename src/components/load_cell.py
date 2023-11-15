@@ -131,16 +131,15 @@ class LoadCellArray:
             self.cells[chamber - 1].insert(index, LoadCell(data_pin, clock_pin, gain, channel, chamber, side, m, b))
 
     def take_measurement(self) -> list:
-        data = [[],[],[],[]]
+        data = []
 
         chamber_num = 1
         for chamber in self.cells:
             for cell in chamber:
                 mass = cell.take_measurement()
-                data[chamber_num - 1].append(mass)
+                data.append(mass)
             chamber_num += 1
 
-        print(data)
         return data
 
 
