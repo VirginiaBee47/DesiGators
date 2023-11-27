@@ -1,4 +1,6 @@
-from numpy import polyfit
+from os import getcwd, chdir
+
+from numpy import polyfit, array, quantile
 
 import hx711
 
@@ -29,7 +31,15 @@ class LoadCell(hx711.HX711):
         self.offset = average_val
 
     def take_measurement(self) -> float:
-        measurement = sum(self.get_raw_data(3)) / 3
+        readings = self.get_raw_data(25)
+        print(readings)
+
+        readings = array(readings)
+        readings = readings[(readings > quantile(readings, 0.1)) & (readings < quantile(readings, 0.9))].tolist()
+
+        measurement = sum(readings) / len(readings)
+        print(readings)
+        print(measurement)
         return measurement
 
     def get_mass(self) -> float:
@@ -45,9 +55,8 @@ class LoadCell(hx711.HX711):
 
         calibration_data = [[], []]
 
-        for i in range(10):
-            calibration_data[0].append(self.take_measurement())
-            calibration_data[1].append(working_mass)
+        calibration_data[0].append(self.take_measurement())
+        calibration_data[1].append(working_mass)
 
         while calibrating:
             working_mass_accepted = False
@@ -60,10 +69,8 @@ class LoadCell(hx711.HX711):
                     print("Not a valid mass...")
 
             print("Do not disturb the scale during meausurement...")
-            for i in range(10):
-                if (measurement := self.take_measurement()) > 0:
-                    calibration_data[0].append(measurement)
-                    calibration_data[1].append(working_mass)
+            calibration_data[0].append(self.take_measurement())
+            calibration_data[1].append(working_mass)
 
             if (ans := input("Do you wish to continue? [Y/N] ").lower()) == "n":
                 calibrating = False
@@ -101,11 +108,19 @@ class LoadCellArray:
             file.close()
 
     def load_array(self) -> None:
-        with open('cache/load_cells.txt', 'r') as file:
+        if __name__ != '__main__':
+            print('Changing dir...')
+            chdir('components/')
+        print(getcwd())
+
+        with open(getcwd() + 'cache/load_cells.txt', 'r') as file:
             data_string = file.read()
             file.close()
 
         cells = data_string.split('|')
+        cells.pop(-1)
+        print(cells)
+
         for i in range(len(cells)):
             cells[i] = cells[i].split(',')
             data_pin = int(cells[i][0])
@@ -120,11 +135,11 @@ class LoadCellArray:
                 index = 1
 
             if cells[i][5] != "None":
-                m = cells[i][5]
+                m = float(cells[i][5])
             else:
                 m = None
             if cells[i][6] != "None":
-                b = cells[i][6]
+                b = float(cells[i][6])
             else:
                 b = None
             self.cells[chamber - 1].insert(index, LoadCell(data_pin, clock_pin, gain, channel, chamber, side, m, b))
@@ -135,7 +150,7 @@ class LoadCellArray:
         chamber_num = 1
         for chamber in self.cells:
             for cell in chamber:
-                mass = cell.take_measurement()
+                mass = cell.get_mass()
                 data.append(mass)
             chamber_num += 1
 
@@ -149,10 +164,16 @@ class LoadCellArray:
 
 
 def main():
-    cell1 = LoadCell(12, 20, chamber=1, side='R')
-    cell2 = LoadCell(21, 20, chamber=1, side='L')
+    load_cell_array = LoadCellArray()
+    load_cell_array.load_array()
 
-    load_cell_array = LoadCellArray([cell2, cell1])
+    if input('Do you want to calibrate? [Y/N]') == 'Y':
+        load_cell_array.calibrate()
+
+    for chamber in load_cell_array.cells:
+        for cell in chamber:
+            print(cell.m, cell.b, sep=',')
+
     load_cell_array.save_array()
 
 

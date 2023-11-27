@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout
 )
-from pyqtgraph import PlotWidget, plot
+#from pyqtgraph import PlotWidget, plot
 
 from exceptions import PointNotDefinedException, InvalidParamsException
 from psychrometric_chart import PsychrometricProperties
@@ -69,7 +69,7 @@ class MassUpdater(QRunnable):
                 self.signals.result.emit(readings)
                 sleep(0.5)
                 self.signals.finished.emit()
-                sleep(1)
+                sleep(3)
         print("Thread completed.")
 
 
@@ -180,7 +180,7 @@ class AppWindow(QMainWindow):
         calculate_button = QPushButton("Calculate")
         calculate_button.clicked.connect(self.calculate_clicked)
 
-        self.mass_plot = PlotWidget()
+        #self.mass_plot = PlotWidget()
 
         clear_button = QPushButton("Clear")
         clear_button.clicked.connect(self.clear_clicked)
@@ -285,6 +285,7 @@ class AppWindow(QMainWindow):
     def show_new_masses(self, masses: list) -> None:
         print("show masses now")
         print(masses)
+        masses.pop(0)
         mass_string = '\n'.join(["Load Cell %i: %f" % (i + 1, masses[i]) for i in range(len(masses))])
         self.dialogue_box.setText(mass_string)
 
@@ -293,7 +294,7 @@ class AppWindow(QMainWindow):
         # plot updating should occur in this function
         x_axis = self.mass_data
         y_axis = self.mass_data
-        self.mass_plot.plotItem()
+        #self.mass_plot.plotItem()
 
     def store_masses(self, data: list) -> None:
         current_time = data.pop(0)
