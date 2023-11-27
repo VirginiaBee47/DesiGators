@@ -1,9 +1,6 @@
-from time import sleep
 from numpy import polyfit
-from os.path import exists
 
 import hx711
-
 
 class LoadCell(hx711.HX711):
     def __init__(self, data_pin: int, clock_pin: int, gain: int=128, channel: str='A', chamber: int=1, side: str='L', m: float=None, b: float=None):
@@ -41,11 +38,12 @@ class LoadCell(hx711.HX711):
         return mass
 
     def calibrate(self) -> None:
+        print("Now calibrating load cell: %s" % str(self.id))
         calibrating = True
         input("Ensure that 0 mass is on the scale, then press enter.")
         working_mass = 0
 
-        calibration_data = [[],[]]
+        calibration_data = [[], []]
 
         for i in range(10):
             calibration_data[0].append(self.take_measurement())
@@ -63,8 +61,9 @@ class LoadCell(hx711.HX711):
 
             print("Do not disturb the scale during meausurement...")
             for i in range(10):
-                calibration_data[0].append(self.take_measurement())
-                calibration_data[1].append(working_mass)
+                if (measurement := self.take_measurement()) > 0:
+                    calibration_data[0].append(measurement)
+                    calibration_data[1].append(working_mass)
 
             if (ans := input("Do you wish to continue? [Y/N] ").lower()) == "n":
                 calibrating = False
@@ -142,6 +141,12 @@ class LoadCellArray:
 
         return data
 
+    def calibrate(self) -> None:
+        for chamber in self.cells:
+            for cell in chamber:
+                cell.calibrate()
+
+
 
 def main():
     cell1 = LoadCell(12, 20, chamber=1, side='R')
@@ -149,9 +154,6 @@ def main():
 
     load_cell_array = LoadCellArray([cell2, cell1])
     load_cell_array.save_array()
-
-    while True:
-        print(str(load_cell_array.take_measurement()))
 
 
 if __name__ == '__main__':

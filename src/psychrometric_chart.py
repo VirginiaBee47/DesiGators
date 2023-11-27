@@ -1122,3 +1122,11 @@ def find_dry_bulb_temperature_specific_vol_RH(specific_vol: float, relative_humi
         t_next = t_dry_bulb_specific_vol_step(trial_temp, specific_vol, relative_humidity, p_total)
 
     return trial_temp
+
+
+def main():
+    print(find_specific_heat(find_humidity_ratio_from_RH_temp(0.08, 25, 225458.6)))
+
+
+if __name__ == '__main__':
+    main()

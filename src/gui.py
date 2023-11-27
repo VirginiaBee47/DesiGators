@@ -311,7 +311,7 @@ class AppWindow(QMainWindow):
         if not self.controls['measure_mass']:
             self.controls['measure_mass'] = True
             self.collection_start_time = time()
-            self.mass_data = np.zeros()
+            self.mass_data = np.zeros((8, 1))
             self.measurement_handling()
         else:
             self.controls['measure_mass'] = False
