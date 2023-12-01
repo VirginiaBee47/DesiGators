@@ -299,7 +299,7 @@ class AppWindow(QMainWindow):
     def store_masses(self, data: list) -> None:
         print('store_masses_called')
         current_time = data.pop(0)
-        print(data)
+
         self.mass_data = np.append(self.mass_data, [[current_time - self.collection_start_time, *data]], axis=0)
         print(self.mass_data)
 
@@ -315,7 +315,7 @@ class AppWindow(QMainWindow):
         if not self.controls['measure_mass']:
             self.controls['measure_mass'] = True
             self.collection_start_time = int(time())
-            self.mass_data = np.zeros((3, 1))
+            self.mass_data = np.zeros((1, 3))
             self.measurement_handling()
         else:
             self.controls['measure_mass'] = False
