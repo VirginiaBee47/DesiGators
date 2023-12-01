@@ -113,7 +113,7 @@ class LoadCellArray:
             chdir('components/')
         print(getcwd())
 
-        with open(getcwd() + 'cache/load_cells.txt', 'r') as file:
+        with open(getcwd() + '/cache/load_cells.txt', 'r') as file:
             data_string = file.read()
             file.close()
 
