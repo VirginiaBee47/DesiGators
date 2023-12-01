@@ -297,6 +297,7 @@ class AppWindow(QMainWindow):
         #self.mass_plot.plotItem()
 
     def store_masses(self, data: list) -> None:
+        print('store_masses_called')
         current_time = data.pop(0)
         np.append(self.mass_data, [current_time - self.collection_start_time, *data])
 
@@ -317,7 +318,7 @@ class AppWindow(QMainWindow):
         else:
             self.controls['measure_mass'] = False
             file_name = str(self.collection_start_time) + '_mass_data.csv'
-            headings = ["mass %i," % num for num in range(np.shape(self.mass_data)[0])]
+            headings = ''.join(["mass %i," % num for num in range(np.shape(self.mass_data)[0])])
             print(self.mass_data)
             np.savetxt(file_name, self.mass_data, header=headings)
             self.mass_data = None
