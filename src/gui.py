@@ -1,4 +1,5 @@
 import sys
+import os
 import numpy as np
 
 from time import sleep, time
@@ -189,9 +190,8 @@ class AppWindow(QMainWindow):
         measure_button.clicked.connect(self.measurement_clicked)
 
         # Defining the load cell array to be passed into the updater object
-        load_cell_1 = LoadCell(12, 20, chamber=1, side='R')
-        load_cell_2 = LoadCell(21, 20, chamber=1, side='L')
-        self.load_cell_array = LoadCellArray([load_cell_1, load_cell_2])
+        self.load_cell_array = LoadCellArray()
+        self.load_cell_array.load_array()
 
         button_layout = QHBoxLayout()
         button_layout.addWidget(calculate_button, 2)
@@ -199,7 +199,7 @@ class AppWindow(QMainWindow):
         button_layout.addWidget(measure_button, 2)
 
         dialogue_plot_layout.addWidget(self.dialogue_box, 50)
-        dialogue_plot_layout.addWidget(self.mass_plot)
+        #dialogue_plot_layout.addWidget(self.mass_plot)
 
         output_calc_layout.addLayout(dialogue_plot_layout, 75)
         output_calc_layout.addLayout(button_layout, 25)
@@ -311,13 +311,15 @@ class AppWindow(QMainWindow):
     def measurement_clicked(self) -> None:
         if not self.controls['measure_mass']:
             self.controls['measure_mass'] = True
-            self.collection_start_time = time()
+            self.collection_start_time = int(time())
             self.mass_data = np.zeros((8, 1))
             self.measurement_handling()
         else:
             self.controls['measure_mass'] = False
             file_name = str(self.collection_start_time) + '_mass_data.csv'
-            np.savetxt('data/' + file_name, self.mass_data, header='test')
+            os.chdir('data/')
+            np.savetxt(file_name, self.mass_data, header='test')
+            os.chdir('..')
             self.mass_data = None
 
     def closeEvent(self, event):
