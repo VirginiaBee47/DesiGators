@@ -300,7 +300,7 @@ class AppWindow(QMainWindow):
         print('store_masses_called')
         current_time = data.pop(0)
         print(data)
-        self.mass_data = np.append(self.mass_data, [current_time - self.collection_start_time, *data])
+        self.mass_data = np.append(self.mass_data, [current_time - self.collection_start_time, *data], axis=0)
         print(self.mass_data)
 
     def measurement_handling(self) -> None:
@@ -320,7 +320,7 @@ class AppWindow(QMainWindow):
         else:
             self.controls['measure_mass'] = False
             file_name = str(self.collection_start_time) + '_mass_data.csv'
-            headings = 'time' + ''.join(["mass %i," % num for num in range(np.shape(self.mass_data)[0])])
+            headings = 'time' + ', '.join(["mass %i" % num for num in range(np.shape(self.mass_data)[0]-1)])
             print(self.mass_data)
             np.savetxt(file_name, self.mass_data, header=headings, delimiter=',', fmt='%1.4f')
             self.mass_data = None
