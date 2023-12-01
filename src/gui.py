@@ -316,6 +316,8 @@ class AppWindow(QMainWindow):
             self.measurement_handling()
         else:
             self.controls['measure_mass'] = False
+            file_name = str(self.collection_start_time) + '_mass_data.csv'
+            np.savetxt('data/' + file_name, self.mass_data, header='test')
             self.mass_data = None
 
     def closeEvent(self, event):
