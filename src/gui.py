@@ -321,7 +321,7 @@ class AppWindow(QMainWindow):
             self.controls['measure_mass'] = False
             file_name = str(self.collection_start_time) + '_mass_data.csv'
             headings = 'time, ' + ', '.join(["mass %i" % num for num in range(np.shape(self.mass_data)[1]-1)])
-            self.mass_data = np.delete(self.mass_data, [0,1,2])
+            self.mass_data = np.delete(self.mass_data, 0, 0)
             print(self.mass_data)
             np.savetxt(file_name, self.mass_data, header=headings, delimiter=', ', fmt='%1.4f')
             self.mass_data = None
