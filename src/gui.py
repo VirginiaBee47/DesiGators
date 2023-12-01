@@ -299,7 +299,8 @@ class AppWindow(QMainWindow):
     def store_masses(self, data: list) -> None:
         print('store_masses_called')
         current_time = data.pop(0)
-        self.mass_data =  np.append(self.mass_data, [current_time - self.collection_start_time, *data])
+        print(data)
+        self.mass_data = np.append(self.mass_data, [current_time - self.collection_start_time, *data])
         print(self.mass_data)
 
     def measurement_handling(self) -> None:
@@ -314,14 +315,14 @@ class AppWindow(QMainWindow):
         if not self.controls['measure_mass']:
             self.controls['measure_mass'] = True
             self.collection_start_time = int(time())
-            self.mass_data = np.zeros((8, 1))
+            self.mass_data = np.zeros((3, 1))
             self.measurement_handling()
         else:
             self.controls['measure_mass'] = False
             file_name = str(self.collection_start_time) + '_mass_data.csv'
-            headings = ''.join(["mass %i," % num for num in range(np.shape(self.mass_data)[0])])
+            headings = 'time' + ''.join(["mass %i," % num for num in range(np.shape(self.mass_data)[0])])
             print(self.mass_data)
-            np.savetxt(file_name, self.mass_data, header=headings)
+            np.savetxt(file_name, self.mass_data, header=headings, delimiter=',', fmt='%1.4f')
             self.mass_data = None
 
     def closeEvent(self, event):
