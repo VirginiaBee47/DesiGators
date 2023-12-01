@@ -300,6 +300,7 @@ class AppWindow(QMainWindow):
         print('store_masses_called')
         current_time = data.pop(0)
         np.append(self.mass_data, [current_time - self.collection_start_time, *data])
+        print(self.mass_data)
 
     def measurement_handling(self) -> None:
         handler = MassUpdater(self.load_cell_array, self.controls)
