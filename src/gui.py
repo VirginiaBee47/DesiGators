@@ -209,7 +209,13 @@ class AppWindow(QMainWindow):
 
         # Create output_calc_layout (layout including dialogue box for errors, plot, and button to calculate)
         self.dialogue_box = QLabel()
-        self.dialogue_box.setStyleSheet("border: 1px solid black;")
+        self.dialogue_box.setStyleSheet("border: 2px solid black;")
+
+        self.mass_box = QLabel()
+        self.mass_box.setStyleSheet("border: 1px solid black;")
+
+        self.rht_box = QLabel()
+        self.rht_box.setStyleSheet("border: 1px solid black;")
 
         calculate_button = QPushButton("Calculate")
         calculate_button.clicked.connect(self.calculate_clicked)
@@ -233,7 +239,9 @@ class AppWindow(QMainWindow):
         button_layout.addWidget(clear_button, 2)
         button_layout.addWidget(measure_button, 2)
 
-        dialogue_plot_layout.addWidget(self.dialogue_box, 50)
+        dialogue_plot_layout.addWidget(self.dialogue_box, 10)
+        dialogue_plot_layout.addWidget(self.mass_box, 40)
+        dialogue_plot_layout.addWidget(self.rht_box, 40)
         # dialogue_plot_layout.addWidget(self.mass_plot)
 
         output_calc_layout.addLayout(dialogue_plot_layout, 75)
@@ -320,12 +328,12 @@ class AppWindow(QMainWindow):
     def show_new_masses(self, masses: list) -> None:
         masses.pop(0)
         mass_string = '\n'.join(["Load Cell %i: %f" % (i + 1, masses[i]) for i in range(len(masses))])
-        self.dialogue_box.setText(mass_string)
+        self.mass_box.setText(mass_string)
 
     def show_new_rht(self, rhts: list) -> None:
         rhts.pop(0)
         rht_string = '\n'.join(["Sensor %i - %f \t %f" % (i + 1, rhts[i][0], rhts[i][1]) for i in range(0, len(rhts), 2)])
-        self.dialogue_box.setText(self.dialogue_box.text() + rht_string)
+        self.rht_box.setText(rht_string)
 
     def update_plot(self):
         # This function needs a lot of work
