@@ -331,7 +331,6 @@ class AppWindow(QMainWindow):
         self.mass_box.setText(mass_string)
 
     def show_new_rht(self, rhts: list) -> None:
-        rhts.pop(0)
         rht_string = '\n'.join(["Sensor %i - %f \t %f" % (i + 1, rhts[i][0], rhts[i][1]) for i in range(len(rhts))])
         self.rht_box.setText(rht_string)
 
