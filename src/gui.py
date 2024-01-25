@@ -239,13 +239,13 @@ class AppWindow(QMainWindow):
         button_layout.addWidget(clear_button, 2)
         button_layout.addWidget(measure_button, 2)
 
-        dialogue_plot_layout.addWidget(self.dialogue_box, 10)
-        dialogue_plot_layout.addWidget(self.mass_box, 40)
-        dialogue_plot_layout.addWidget(self.rht_box, 40)
+        dialogue_plot_layout.addWidget(self.dialogue_box)
         # dialogue_plot_layout.addWidget(self.mass_plot)
 
-        output_calc_layout.addLayout(dialogue_plot_layout, 75)
-        output_calc_layout.addLayout(button_layout, 25)
+        output_calc_layout.addLayout(dialogue_plot_layout, 10)
+        output_calc_layout.addWidget(self.mass_box, 40)
+        output_calc_layout.addWidget(self.rht_box, 40)
+        output_calc_layout.addLayout(button_layout, 10)
 
         layout.addLayout(params_layout)
         layout.addLayout(output_calc_layout)
