@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout
 )
-#from pyqtgraph import PlotWidget, plot
+# from pyqtgraph import PlotWidget, plot
 
 from exceptions import PointNotDefinedException, InvalidParamsException
 from psychrometric_chart import PsychrometricProperties
@@ -65,7 +65,7 @@ class MassUpdater(QRunnable):
             else:
                 print(self._array.cells)
                 print(readings := self._array.take_measurement())
-                readings.insert(0,time())
+                readings.insert(0, time())
                 self.signals.result.emit(readings)
                 sleep(0.5)
                 self.signals.finished.emit()
@@ -214,7 +214,7 @@ class AppWindow(QMainWindow):
         calculate_button = QPushButton("Calculate")
         calculate_button.clicked.connect(self.calculate_clicked)
 
-        #self.mass_plot = PlotWidget()
+        # self.mass_plot = PlotWidget()
 
         clear_button = QPushButton("Clear")
         clear_button.clicked.connect(self.clear_clicked)
@@ -234,7 +234,7 @@ class AppWindow(QMainWindow):
         button_layout.addWidget(measure_button, 2)
 
         dialogue_plot_layout.addWidget(self.dialogue_box, 50)
-        #dialogue_plot_layout.addWidget(self.mass_plot)
+        # dialogue_plot_layout.addWidget(self.mass_plot)
 
         output_calc_layout.addLayout(dialogue_plot_layout, 75)
         output_calc_layout.addLayout(button_layout, 25)
@@ -332,7 +332,7 @@ class AppWindow(QMainWindow):
         # plot updating should occur in this function
         x_axis = self.mass_data
         y_axis = self.mass_data
-        #self.mass_plot.plotItem()
+        # self.mass_plot.plotItem()
 
     def store_masses(self, data: list) -> None:
         print('store_masses_called')
@@ -343,12 +343,12 @@ class AppWindow(QMainWindow):
 
     def measurement_handling(self) -> None:
         mass_handler = MassUpdater(self.load_cell_array, self.controls)
-        mass_handler.signals.result.connect(self.show_new_masses())
+        mass_handler.signals.result.connect(self.show_new_masses)
         mass_handler.signals.result.connect(self.store_masses)
         mass_handler.signals.finished.connect(self.update_plot)
 
-        rht_handler = RHTUpdater(self.rht_sensor_array ,self.controls)
-        rht_handler.signals.result.connect(self.show_new_rht())
+        rht_handler = RHTUpdater(self.rht_sensor_array, self.controls)
+        rht_handler.signals.result.connect(self.show_new_rht)
 
         self.threadpool.start(mass_handler)
         self.threadpool.start(rht_handler)
@@ -363,7 +363,7 @@ class AppWindow(QMainWindow):
             # Add either autosaving or a save-only button that doesn't stop data collection
             self.controls['measure'] = False
             file_name = str(self.collection_start_time) + '_mass_data.csv'
-            headings = 'time, ' + ', '.join(["mass %i" % num for num in range(np.shape(self.mass_data)[1]-1)])
+            headings = 'time, ' + ', '.join(["mass %i" % num for num in range(np.shape(self.mass_data)[1] - 1)])
             self.mass_data = np.delete(self.mass_data, 0, 0)
 
             np.savetxt(file_name, self.mass_data, header=headings, delimiter=', ', fmt='%1.4f')
