@@ -12,7 +12,7 @@ class LoadCell(hx711.HX711):
             raise ValueError("Chamber parameter must be one of [1,2,3,4].")
 
         if str(side).upper() not in ['L', 'R']:
-            raise ValueError("Side parameter must equal 'L' or 'R'")
+            raise ValueError("Side parameter must equal 'L' or 'R'.")
 
         self.data_pin = data_pin
         self.clock_pin = clock_pin
@@ -161,6 +161,31 @@ class LoadCellArray:
             for cell in chamber:
                 cell.calibrate()
 
+
+import openpyxl
+from time import time
+
+def save_rht_vals(rht_vals):
+    path = '/home/admin/Documents/Drying Data/RHT'
+
+    name = 'autosave ' + str(time()) + '.xlsx'
+
+    sheet = openpyxl.Workbook()
+
+    for i in len(rht_vals):
+        sheet['Sheet1']['A' + str(i + 1)] = rht_vals[i][0]
+        sheet['Sheet1']['B' + str(i + 1)] = rht_vals[i][1]
+        sheet['Sheet1']['C' + str(i + 1)] = rht_vals[i][2]
+        sheet['Sheet1']['D' + str(i + 1)] = rht_vals[i][3]
+        sheet['Sheet1']['E' + str(i + 1)] = rht_vals[i][4]
+        sheet['Sheet1']['F' + str(i + 1)] = rht_vals[i][5]
+        sheet['Sheet1']['G' + str(i + 1)] = rht_vals[i][6]
+        sheet['Sheet1']['H' + str(i + 1)] = rht_vals[i][7]
+        sheet['Sheet1']['I' + str(i + 1)] = rht_vals[i][8]
+
+    sheet.save(path + name)
+
+    return name
 
 
 def main():

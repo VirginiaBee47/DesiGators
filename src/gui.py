@@ -1,5 +1,4 @@
 import sys
-import os
 import numpy as np
 
 from time import sleep, time
@@ -24,7 +23,8 @@ from PyQt6.QtWidgets import (
 
 from exceptions import PointNotDefinedException, InvalidParamsException
 from psychrometric_chart import PsychrometricProperties
-from components.load_cell import LoadCell, LoadCellArray
+from components.load_cell import LoadCellArray
+from components.sht45 import RHTSensorArray, SHT45
 
 
 class QInputBox(QLineEdit):
@@ -60,13 +60,46 @@ class MassUpdater(QRunnable):
         print("Thread started.")
         print(self.control)
         while True:
-            if not self.control['measure_mass']:
+            if not self.control['measure']:
                 break
             else:
-                print("Reading...")
                 print(self._array.cells)
                 print(readings := self._array.take_measurement())
                 readings.insert(0,time())
+                self.signals.result.emit(readings)
+                sleep(0.5)
+                self.signals.finished.emit()
+                sleep(3)
+        print("Thread completed.")
+
+
+class RHTSignals(QObject):
+    """Signals associated with the RHT updating worker. Works
+    in the same way as the MassUpdater class.
+    """
+
+    finished = pyqtSignal()
+    error = pyqtSignal()
+    result = pyqtSignal(list)
+
+
+class RHTUpdater(QRunnable):
+    def __init__(self, _sensor_array: RHTSensorArray, control):
+        super(RHTUpdater, self).__init__()
+
+        self.control = control
+        self.signals = RHTSignals()
+        self._array = _sensor_array
+
+    def run(self):
+        print("Thread started.")
+        print(self.control)
+        while True:
+            if not self.control['measure']:
+                break
+            else:
+                print(self._array.sensors)
+                print(readings := self._array.take_measurement())
                 self.signals.result.emit(readings)
                 sleep(0.5)
                 self.signals.finished.emit()
@@ -193,6 +226,8 @@ class AppWindow(QMainWindow):
         self.load_cell_array = LoadCellArray()
         self.load_cell_array.load_array()
 
+        self.rht_sensor_array = RHTSensorArray([SHT45(3), SHT45(6)])
+
         button_layout = QHBoxLayout()
         button_layout.addWidget(calculate_button, 2)
         button_layout.addWidget(clear_button, 2)
@@ -213,17 +248,17 @@ class AppWindow(QMainWindow):
 
         self.threadpool = QThreadPool()
 
-        self.controls = {'measure_mass': False}
+        self.controls = {'measure': False}
 
     def clear_clicked(self) -> None:
         for input_box in self.input_boxes:
             input_box.setText("")
 
-        if not self.controls['measure_mass']:
+        if not self.controls['measure']:
             self.dialogue_box.setText("Cleared!")
 
     def calculate_clicked(self) -> None:
-        if not self.controls['measure_mass']:
+        if not self.controls['measure']:
             self.dialogue_box.setText("")
 
         params_dict = {'dry_bulb_temperature': None,
@@ -279,15 +314,18 @@ class AppWindow(QMainWindow):
                     elif input_box.property_name == 'specific_heat_capacity':
                         input_box.setText(str(round(psy_point.specific_heat_capacity, 2)))
 
-            if not self.controls['measure_mass']:
+            if not self.controls['measure']:
                 self.dialogue_box.setText("Calculated!")
 
     def show_new_masses(self, masses: list) -> None:
-        print("show masses now")
-        print(masses)
         masses.pop(0)
         mass_string = '\n'.join(["Load Cell %i: %f" % (i + 1, masses[i]) for i in range(len(masses))])
         self.dialogue_box.setText(mass_string)
+
+    def show_new_rht(self, rhts: list) -> None:
+        rhts.pop(0)
+        rht_string = '\n'.join(["Sensor %i - %f \t %f" % (i + 1, rhts[i], rhts[i]) for i in range(0, len(rhts), 2)])
+        self.dialogue_box.setText(self.dialogue_box.text() + rht_string)
 
     def update_plot(self):
         # This function needs a lot of work
@@ -304,31 +342,38 @@ class AppWindow(QMainWindow):
         print(self.mass_data)
 
     def measurement_handling(self) -> None:
-        handler = MassUpdater(self.load_cell_array, self.controls)
-        handler.signals.result.connect(self.show_new_masses)
-        handler.signals.result.connect(self.store_masses)
-        handler.signals.finished.connect(self.update_plot)
+        mass_handler = MassUpdater(self.load_cell_array, self.controls)
+        mass_handler.signals.result.connect(self.show_new_masses())
+        mass_handler.signals.result.connect(self.store_masses)
+        mass_handler.signals.finished.connect(self.update_plot)
 
-        self.threadpool.start(handler)
+        rht_handler = RHTUpdater(self.rht_sensor_array ,self.controls)
+        rht_handler.signals.result.connect(self.show_new_rht())
 
-    def measurement_clicked(self) -> None:
-        if not self.controls['measure_mass']:
-            self.controls['measure_mass'] = True
+        self.threadpool.start(mass_handler)
+        self.threadpool.start(rht_handler)
+
+    def measurement_clicked(self) -> str:
+        if not self.controls['measure']:
+            self.controls['measure'] = True
             self.collection_start_time = int(time())
             self.mass_data = np.zeros((1, 3))
             self.measurement_handling()
         else:
-            self.controls['measure_mass'] = False
+            # Add either autosaving or a save-only button that doesn't stop data collection
+            self.controls['measure'] = False
             file_name = str(self.collection_start_time) + '_mass_data.csv'
             headings = 'time, ' + ', '.join(["mass %i" % num for num in range(np.shape(self.mass_data)[1]-1)])
             self.mass_data = np.delete(self.mass_data, 0, 0)
-            print(self.mass_data)
+
             np.savetxt(file_name, self.mass_data, header=headings, delimiter=', ', fmt='%1.4f')
             self.mass_data = None
 
+            return file_name
+
     def closeEvent(self, event):
         # Override the closeEvent method that exists and replace with controls editing to exit ongoing threads
-        self.controls['measure_mass'] = False
+        self.controls['measure'] = False
         event.accept()
 
 
