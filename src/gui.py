@@ -324,7 +324,7 @@ class AppWindow(QMainWindow):
 
     def show_new_rht(self, rhts: list) -> None:
         rhts.pop(0)
-        rht_string = '\n'.join(["Sensor %i - %f \t %f" % (i + 1, rhts[i], rhts[i]) for i in range(0, len(rhts), 2)])
+        rht_string = '\n'.join(["Sensor %i - %f \t %f" % (i + 1, rhts[i][0], rhts[i][1]) for i in range(0, len(rhts), 2)])
         self.dialogue_box.setText(self.dialogue_box.text() + rht_string)
 
     def update_plot(self):
