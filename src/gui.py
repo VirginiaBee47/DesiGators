@@ -103,7 +103,7 @@ class RHTUpdater(QRunnable):
                 self.signals.result.emit(readings)
                 sleep(0.5)
                 self.signals.finished.emit()
-                sleep(3)
+                sleep(1)
         print("Thread completed.")
 
 
