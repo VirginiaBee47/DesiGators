@@ -497,7 +497,7 @@ class AppWindow(QMainWindow):
         if not self.controls['calc_shown']:
             # then show the calc
             self.controls['calc_shown'] = True
-            self.calc_window = PsychrometricCalculatorWindow(self.controls['calc_shown'])
+            self.calc_window = PsychrometricCalculatorWindow(self)
             self.calc_window.show()
             pass
         else:
