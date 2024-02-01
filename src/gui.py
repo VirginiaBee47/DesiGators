@@ -206,10 +206,10 @@ class PsychrometricCalculatorWindow(QWidget):
 
         self.setLayout(params_layout)
 
-        def closeEvent(self, event):
-            # Override the closeEvent method that exists and replace with controls editing to exit ongoing threads
-            self.parent_control = False
-            event.accept()
+    def closeEvent(self, event):
+        # Override the closeEvent method that exists and replace with controls editing to exit ongoing threads
+        self.parent_control = False
+        event.accept()
 
 
 class AppWindow(QMainWindow):
