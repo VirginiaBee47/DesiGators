@@ -12,6 +12,7 @@ from PyQt6.QtCore import (
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
+    QToolBar,
     QLineEdit,
     QPushButton,
     QLabel,
@@ -116,6 +117,9 @@ class AppWindow(QMainWindow):
 
         self.setWindowTitle("Psychrometric Calculator")
         layout = QHBoxLayout()
+
+        toolbar = QToolBar()
+        self.addToolBar(toolbar)
 
         # Create the parameter rows
         param_row_layouts_list = [pressure_layout := QHBoxLayout(),
@@ -339,6 +343,7 @@ class AppWindow(QMainWindow):
         # plot updating should occur in this function
         x_axis = self.mass_data
         y_axis = self.mass_data
+        # self.dialogue_box
         # self.mass_plot.plotItem()
 
     def store_masses(self, data: list) -> None:
