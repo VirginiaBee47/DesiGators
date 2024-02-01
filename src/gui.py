@@ -112,11 +112,10 @@ class RHTUpdater(QRunnable):
 
 
 class PsychrometricCalculatorWindow(QWidget):
-    def __init__(self, parent_control):
+    def __init__(self, parent):
         super().__init__()
 
-        self.parent_control = parent_control
-        print(parent_control)
+        self.parent = parent
         params_layout = QVBoxLayout()
 
         # Create the parameter rows
@@ -208,7 +207,7 @@ class PsychrometricCalculatorWindow(QWidget):
 
     def closeEvent(self, event):
         # Override the closeEvent method that exists and replace with controls editing to exit ongoing threads
-        self.parent_control = False
+        self.parent.controls['calc_shown'] = False
         event.accept()
 
 
