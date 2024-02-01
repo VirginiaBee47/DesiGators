@@ -203,7 +203,86 @@ class PsychrometricCalculatorWindow(QWidget):
             # Add parameter row to column on the left
             params_layout.addLayout(param_row_layouts_list[i])
 
-        self.setLayout(params_layout)
+        output_controls_layout = QVBoxLayout()
+
+        calculate_button = QPushButton("Calculate")
+        calculate_button.clicked.connect(self.calculate_clicked)
+
+        clear_button = QPushButton("Clear")
+        clear_button.clicked.connect(self.clear_clicked)
+
+        self.output_box = QLabel()
+        self.output_box.setStyleSheet("border: 2px solid black;")
+
+        output_controls_layout.addWidget(self.output_box)
+        output_controls_layout.addWidget(calculate_button)
+        output_controls_layout.addWidget(clear_button)
+
+        layout = QHBoxLayout()
+        layout.addLayout(params_layout, 75)
+        layout.addLayout(output_controls_layout, 25)
+
+        self.setLayout(layout)
+
+    def calculate_clicked(self):
+        self.output_box.setText("")
+
+        params_dict = {'dry_bulb_temperature': None,
+                       'wet_bulb_temperature': None,
+                       'dew_point_temperature': None,
+                       'total_pressure': None,
+                       'humidity_ratio': None,
+                       'relative_humidity': None,
+                       'total_enthalpy': None,
+                       'partial_pressure_vapor': None,
+                       'specific_volume': None,
+                       'specific_heat_capacity': None}
+
+        for input_box in self.input_boxes:
+            if input_box.text() != "":
+                if input_box.property_name == 'relative_humidity':
+                    params_dict['relative_humidity'] = float(input_box.text()) / 100
+                else:
+                    params_dict[input_box.property_name] = float(input_box.text())
+
+        psy_point = None
+        try:
+            psy_point = PsychrometricProperties(**params_dict)
+        except PointNotDefinedException:
+            self.output_box.setText("Not enough information provided.")
+        except InvalidParamsException as exception:
+            self.output_box.setText(exception.message)
+
+        if psy_point is not None:
+            for input_box in self.input_boxes:
+                if input_box.text() == "":
+                    if input_box.property_name == 'dry_bulb_temperature':
+                        input_box.setText(str(round(psy_point.dry_bulb_temperature, 2)))
+                    elif input_box.property_name == 'wet_bulb_temperature':
+                        input_box.setText(str(round(psy_point.wet_bulb_temperature, 2)))
+                    elif input_box.property_name == 'dew_point_temperature':
+                        input_box.setText(str(round(psy_point.dew_point_temperature, 2)))
+                    elif input_box.property_name == 'total_pressure':
+                        input_box.setText(str(round(psy_point.total_pressure, 2)))
+                    elif input_box.property_name == 'humidity_ratio':
+                        input_box.setText(str(round(psy_point.humidity_ratio, 5)))
+                    elif input_box.property_name == 'relative_humidity':
+                        input_box.setText(str(round(psy_point.relative_humidity * 100, 2)))
+                    elif input_box.property_name == 'total_enthalpy':
+                        input_box.setText(str(round(psy_point.total_enthalpy, 3)))
+                    elif input_box.property_name == 'partial_pressure_vapor':
+                        input_box.setText(str(round(psy_point.partial_pressure_vapor, 2)))
+                    elif input_box.property_name == 'specific_volume':
+                        input_box.setText(str(round(psy_point.specific_volume, 2)))
+                    elif input_box.property_name == 'specific_heat_capacity':
+                        input_box.setText(str(round(psy_point.specific_heat_capacity, 2)))
+
+            self.output_box.setText("Calculated!")
+
+    def clear_clicked(self):
+        for input_box in self.input_boxes:
+            input_box.setText("")
+        self.output_box.setText("Cleared!")
 
     def closeEvent(self, event):
         # Override the closeEvent method that exists and replace with controls editing to exit ongoing threads
