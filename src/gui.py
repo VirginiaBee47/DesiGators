@@ -116,7 +116,7 @@ class PsychrometricCalculatorWindow(QWidget):
         super().__init__()
 
         self.parent_control = parent_control
-
+        print(parent_control)
         params_layout = QVBoxLayout()
 
         # Create the parameter rows
@@ -494,6 +494,7 @@ class AppWindow(QMainWindow):
             return file_name
 
     def show_calculator_clicked(self) -> None:
+        print(self.controls['calc_shown'])
         if not self.controls['calc_shown']:
             # then show the calc
             self.controls['calc_shown'] = True
