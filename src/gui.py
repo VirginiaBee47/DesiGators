@@ -12,7 +12,6 @@ from PyQt6.QtCore import (
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
-    QToolBar,
     QLineEdit,
     QPushButton,
     QLabel,
@@ -20,6 +19,10 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout
 )
+from PyQt6.QtGui import (
+    QAction
+)
+
 # from pyqtgraph import PlotWidget, plot
 
 from exceptions import PointNotDefinedException, InvalidParamsException
@@ -108,6 +111,107 @@ class RHTUpdater(QRunnable):
         print("Thread completed.")
 
 
+class PsychrometricCalculatorWindow(QWidget):
+    def __init__(self, parent_control):
+        super().__init__()
+
+        self.parent_control = parent_control
+
+        params_layout = QVBoxLayout()
+
+        # Create the parameter rows
+        param_row_layouts_list = [pressure_layout := QHBoxLayout(),
+                                  dry_bulb_layout := QHBoxLayout(),
+                                  wet_bulb_layout := QHBoxLayout(),
+                                  dew_point_layout := QHBoxLayout(),
+                                  relative_humidity_layout := QHBoxLayout(),
+                                  humidity_ratio_layout := QHBoxLayout(),
+                                  partial_pressure_layout := QHBoxLayout(),
+                                  total_enthalpy_layout := QHBoxLayout(),
+                                  specific_heat_layout := QHBoxLayout(),
+                                  specific_volume_layout := QHBoxLayout()]
+
+        param_widgets_list = []
+        unit_widgets_list = []
+
+        # List all the psychrometric parameters in order (this order must be maintained)
+        params = ['Total Pressure',
+                  'Dry Bulb Temp',
+                  'Wet Bulb Temp',
+                  'Dew Point',
+                  'Relative Humidity',
+                  'Humidity Ratio',
+                  'Partial Vapor Pressure',
+                  'Total Enthalpy',
+                  'Specific Heat',
+                  'Specific Volume']
+
+        # List all the units of the corresponding psychrometric parameters
+        units = ['Pa',
+                 chr(176) + 'C',
+                 chr(176) + 'C',
+                 chr(176) + 'C',
+                 '%',
+                 'kg water/kg dry air',
+                 'Pa',
+                 'kJ/kg dry air',
+                 'kJ/kg*K',
+                 'm^3/kg']
+
+        # Create param labels
+        for label in params:
+            label_widget = QLabel(label)
+            param_widgets_list.append(label_widget)
+
+        # Create unit labels
+        for label in units:
+            label_widget = QLabel(label)
+            unit_widgets_list.append(label_widget)
+
+        # Create input boxes for each param
+        self.total_pressure_input = QInputBox('total_pressure')
+        self.dry_bulb_input = QInputBox('dry_bulb_temperature')
+        self.wet_bulb_input = QInputBox('wet_bulb_temperature')
+        self.dew_point_input = QInputBox('dew_point_temperature')
+        self.relative_humidity_input = QInputBox('relative_humidity')
+        self.humidity_ratio_input = QInputBox('humidity_ratio')
+        self.vapor_pressure_input = QInputBox('partial_pressure_vapor')
+        self.enthalpy_input = QInputBox('total_enthalpy')
+        self.specific_heat_input = QInputBox('specific_heat_capacity')
+        self.specific_vol_input = QInputBox('specific_volume')
+
+        self.input_boxes = [self.total_pressure_input,
+                            self.dry_bulb_input,
+                            self.wet_bulb_input,
+                            self.dew_point_input,
+                            self.relative_humidity_input,
+                            self.humidity_ratio_input,
+                            self.vapor_pressure_input,
+                            self.enthalpy_input,
+                            self.specific_heat_input,
+                            self.specific_vol_input]
+
+        # Create row layouts for each parameter
+        for i in range(len(param_row_layouts_list)):
+            # Add 1. parameter name QLabel, 2. parameter QLineEdit, 3. parameter units QLabel
+            param_widgets_list[i].setFixedWidth(130)
+            param_row_layouts_list[i].addWidget(param_widgets_list[i])
+            self.input_boxes[i].setFixedWidth(100)
+            param_row_layouts_list[i].addWidget(self.input_boxes[i])
+            unit_widgets_list[i].setFixedWidth(120)
+            param_row_layouts_list[i].addWidget(unit_widgets_list[i])
+
+            # Add parameter row to column on the left
+            params_layout.addLayout(param_row_layouts_list[i])
+
+        self.setLayout(params_layout)
+
+        def closeEvent(self, event):
+            # Override the closeEvent method that exists and replace with controls editing to exit ongoing threads
+            self.parent_control = False
+            event.accept()
+
+
 class AppWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super(AppWindow, self).__init__(*args, **kwargs)
@@ -118,8 +222,13 @@ class AppWindow(QMainWindow):
         self.setWindowTitle("Psychrometric Calculator")
         layout = QHBoxLayout()
 
-        toolbar = QToolBar()
-        self.addToolBar(toolbar)
+        show_calculator = QAction("&Show Calculator", self)
+        show_calculator.setStatusTip("Display Psychrometric Calculator")
+        show_calculator.triggered.connect(self.show_calculator_clicked)
+
+        menu = self.menuBar()
+        menu_menubar = menu.addMenu("&Menu")
+        menu_menubar.addAction(show_calculator)
 
         # Create the parameter rows
         param_row_layouts_list = [pressure_layout := QHBoxLayout(),
@@ -260,7 +369,8 @@ class AppWindow(QMainWindow):
 
         self.threadpool = QThreadPool()
 
-        self.controls = {'measure': False}
+        self.controls = {'measure': False,
+                         'calc_shown': False}
 
     def clear_clicked(self) -> None:
         for input_box in self.input_boxes:
@@ -382,6 +492,16 @@ class AppWindow(QMainWindow):
             self.mass_data = None
 
             return file_name
+
+    def show_calculator_clicked(self) -> None:
+        if not self.controls['calc_shown']:
+            # then show the calc
+            self.controls['calc_shown'] = True
+            self.calc_window = PsychrometricCalculatorWindow(self.controls['calc_shown'])
+            self.calc_window.show()
+            pass
+        else:
+            self.dialogue_box.setText("Calculator already shown.")
 
     def closeEvent(self, event):
         # Override the closeEvent method that exists and replace with controls editing to exit ongoing threads
