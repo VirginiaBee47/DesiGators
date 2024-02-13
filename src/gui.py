@@ -116,8 +116,7 @@ class RHTUpdater(QRunnable):
 
 
 class CoordinatorSignals(QObject):
-    def __init__(self):
-        self.read = pyqtSignal()
+    read = pyqtSignal()
 
 
 class MeasurementCoordinator(QRunnable):
