@@ -446,7 +446,6 @@ class AppWindow(QMainWindow):
         mass_handler = MassUpdater(self.load_cell_array, self.controls)
         mass_handler.signals.result.connect(self.show_new_masses)
         mass_handler.signals.result.connect(self.store_masses)
-        mass_handler.signals.finished.connect(self.update_plot)
 
         rht_handler = RHTUpdater(self.rht_sensor_array, self.controls)
         rht_handler.signals.result.connect(self.show_new_rht)
