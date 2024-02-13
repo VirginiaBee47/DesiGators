@@ -471,6 +471,9 @@ class AppWindow(QMainWindow):
             self.mass_data = np.delete(self.mass_data, 0, 0)
             self.rht_data = np.delete(self.rht_data, 0, 0)
 
+            print(self.mass_data)
+            print(self.rht_data)
+
             self.data_to_save = np.append(self.mass_data, self.rht_data, axis=1)
             np.savetxt(file_name, self.mass_data, header=headings, delimiter=', ', fmt='%1.4f')
             self.mass_data = None
