@@ -450,9 +450,9 @@ class AppWindow(QMainWindow):
         rht_handler = RHTUpdater(self.rht_sensor_array, self.controls)
         rht_handler.signals.result.connect(self.show_new_rht)
 
-        self.threadpool.start()
         self.threadpool.start(mass_handler)
         self.threadpool.start(rht_handler)
+        self.threadpool.start(coordinator)
 
     def measurement_clicked(self) -> str:
         if not self.controls['measure']:
