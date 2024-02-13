@@ -53,7 +53,7 @@ class RHTSensorArray:
                     index = 1
                 self.sensors[int(sensor.id[0]) - 1].insert(index, sensor)
 
-        for chamber in sensors:
+        for chamber in self.sensors:
             for sensor in chamber:
                 self.num_sensors += 1
 
