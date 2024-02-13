@@ -425,7 +425,7 @@ class AppWindow(QMainWindow):
         self.mass_box.setText(mass_string)
 
     def show_new_rht(self, rhts: list) -> None:
-        rht_string = '\n'.join(["Sensor %i - %f C\t %f \%" % (i + 1, rhts[i][0], rhts[i][1]) for i in range(len(rhts))])
+        rht_string = '\n'.join(["Sensor %i - %f C\t %f" % (i + 1, rhts[i][0], rhts[i][1]) for i in range(len(rhts))])
         self.rht_box.setText(rht_string)
 
     def store_masses(self, data: list) -> None:
