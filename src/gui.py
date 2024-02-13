@@ -460,7 +460,7 @@ class AppWindow(QMainWindow):
         if not self.controls['measure']:
             self.controls['measure'] = True
             self.collection_start_time = int(time())
-            self.mass_data = np.zeros((1, int(1 + len(self.load_cell_array.num_cells))))
+            self.mass_data = np.zeros((1, int(1 + self.load_cell_array.num_cells)))
             self.rht_data = np.zeros((1, int(2 * self.rht_sensor_array.num_sensors)))
             self.measurement_handling()
         else:
