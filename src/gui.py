@@ -120,15 +120,19 @@ class CoordinatorSignals(QObject):
 
 
 class MeasurementCoordinator(QRunnable):
-    def __init__(self, interval: int = 10):
+    def __init__(self, control, interval: int = 10):
         super(MeasurementCoordinator, self).__init__()
         self.signals = CoordinatorSignals()
         self.interval = interval
+        self.control = control
 
     def run(self):
         while True:
-            self.signals.read.emit()
-            sleep(self.interval)
+            if not self.control['measure']:
+                break
+            else:
+                sleep(self.interval)
+                self.signals.read.emit()
 
 
 class UnitConverterWindow(QWidget):
@@ -421,7 +425,7 @@ class AppWindow(QMainWindow):
         self.mass_box.setText(mass_string)
 
     def show_new_rht(self, rhts: list) -> None:
-        rht_string = '\n'.join(["Sensor %i - %f \t %f" % (i + 1, rhts[i][0], rhts[i][1]) for i in range(len(rhts))])
+        rht_string = '\n'.join([u"Sensor %i - %f \N{DEGREE SIGN}\t %f\%" % (i + 1, rhts[i][0], rhts[i][1]) for i in range(len(rhts))])
         self.rht_box.setText(rht_string)
 
     def store_masses(self, data: list) -> None:
@@ -431,7 +435,7 @@ class AppWindow(QMainWindow):
         print(self.mass_data)
 
     def store_rht(self, data: list) -> None:
-        self.rht_data = np.append(self.rht_box, [[*data]], axis=0)
+        self.rht_data = np.append(self.rht_data, [[x for t in data for x in t]], axis=0)
         print(self.rht_data)
 
     def emit_read_pulse(self) -> None:
@@ -440,7 +444,7 @@ class AppWindow(QMainWindow):
         self.controls['read_signal'] = False
 
     def measurement_handling(self) -> None:
-        coordinator = MeasurementCoordinator(10)
+        coordinator = MeasurementCoordinator(self.controls)
         coordinator.signals.read.connect(self.emit_read_pulse)
 
         mass_handler = MassUpdater(self.load_cell_array, self.controls)
@@ -449,6 +453,7 @@ class AppWindow(QMainWindow):
 
         rht_handler = RHTUpdater(self.rht_sensor_array, self.controls)
         rht_handler.signals.result.connect(self.show_new_rht)
+        rht_handler.signals.result.connect(self.store_rht)
 
         self.threadpool.start(mass_handler)
         self.threadpool.start(rht_handler)
@@ -464,18 +469,18 @@ class AppWindow(QMainWindow):
         else:
             # Add either autosaving or a save-only button that doesn't stop data collection
             self.controls['measure'] = False
-            file_name = str(self.collection_start_time) + '_mass_data.csv'
+            file_name = str(self.collection_start_time) + '_data.csv'
             headings = 'time, ' + ', '.join(
-                ["mass %i" % num for num in range(np.shape(self.mass_data)[1] - 1)]) + ', '.join(
-                "rh %i, temp %i" % (num, num) for num in range(self.rht_sensor_array.num_sensors))
+                ["mass %i" % (num + 1) for num in range(self.load_cell_array.num_cells - 1)]) + ', ' + ', '.join(
+                "temp %i, rh %i" % (num + 1, num + 1) for num in range(self.rht_sensor_array.num_sensors))
             self.mass_data = np.delete(self.mass_data, 0, 0)
             self.rht_data = np.delete(self.rht_data, 0, 0)
 
             print(self.mass_data)
             print(self.rht_data)
 
-            self.data_to_save = np.append(self.mass_data, self.rht_data, axis=1)
-            np.savetxt(file_name, self.mass_data, header=headings, delimiter=', ', fmt='%1.4f')
+            data_to_save = np.append(self.mass_data, self.rht_data, axis=1)
+            np.savetxt(file_name, data_to_save, header=headings, delimiter=', ', fmt='%1.4f')
             self.mass_data = None
 
             return file_name
