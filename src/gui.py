@@ -471,7 +471,7 @@ class AppWindow(QMainWindow):
             self.controls['measure'] = False
             file_name = str(self.collection_start_time) + '_data.csv'
             headings = 'time, ' + ', '.join(
-                ["mass %i" % (num + 1) for num in range(self.load_cell_array.num_cells - 1)]) + ', ' + ', '.join(
+                ["mass %i" % (num + 1) for num in range(self.load_cell_array.num_cells)]) + ', ' + ', '.join(
                 "temp %i, rh %i" % (num + 1, num + 1) for num in range(self.rht_sensor_array.num_sensors))
             self.mass_data = np.delete(self.mass_data, 0, 0)
             self.rht_data = np.delete(self.rht_data, 0, 0)
