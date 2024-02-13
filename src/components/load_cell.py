@@ -32,14 +32,11 @@ class LoadCell(hx711.HX711):
 
     def take_measurement(self) -> float:
         readings = self.get_raw_data(25)
-        print(readings)
 
         readings = array(readings)
         readings = readings[(readings > quantile(readings, 0.1)) & (readings < quantile(readings, 0.9))].tolist()
 
         measurement = sum(readings) / len(readings)
-        print(readings)
-        print(measurement)
         return measurement
 
     def get_mass(self) -> float:
@@ -88,6 +85,7 @@ class LoadCellArray:
         # "cells" should be a list of LoadCell objects with their chambers and sides defined. __init__ will convert it
         # into the proper hierarchy.
         self.cells = [[],[],[],[]]
+        self.num_cells = 0
 
         if cells is not None:
             for cell in cells:
@@ -98,6 +96,8 @@ class LoadCellArray:
                 else:
                     index = 1
                 self.cells[int(cell.id[0]) - 1].insert(index, cell)
+                self.num_cells += 1
+
 
     def save_array(self) -> None:
         with open('cache/load_cells.txt', 'w') as file:
@@ -108,6 +108,7 @@ class LoadCellArray:
             file.close()
 
     def load_array(self) -> None:
+        self.num_cells = 0
         if __name__ != '__main__':
             print('Changing dir...')
             chdir('components/')
@@ -119,7 +120,7 @@ class LoadCellArray:
 
         cells = data_string.split('|')
         cells.pop(-1)
-        print(cells)
+        self.num_cells = len(cells)
 
         for i in range(len(cells)):
             cells[i] = cells[i].split(',')

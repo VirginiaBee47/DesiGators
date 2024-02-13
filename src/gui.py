@@ -59,19 +59,22 @@ class MassUpdater(QRunnable):
         self._array = _cell_array
 
     def run(self):
+        taken_reading = False
         print("Thread started.")
-        print(self.control)
+
         while True:
             if not self.control['measure']:
                 break
-            else:
-                print(self._array.cells)
+            elif self.control['read_signal'] and not taken_reading:
                 print(readings := self._array.take_measurement())
                 readings.insert(0, time())
                 self.signals.result.emit(readings)
                 sleep(0.5)
                 self.signals.finished.emit()
                 sleep(3)
+                taken_reading = True
+            elif not self.control['read_signal'] and taken_reading:
+                taken_reading = False
         print("Thread completed.")
 
 
@@ -94,19 +97,39 @@ class RHTUpdater(QRunnable):
         self._array = _sensor_array
 
     def run(self):
+        taken_reading = False
+
         print("Thread started.")
-        print(self.control)
         while True:
             if not self.control['measure']:
                 break
-            else:
-                print(self._array.sensors)
+            elif self.control['read_signal'] and not taken_reading:
                 print(readings := self._array.take_measurement())
                 self.signals.result.emit(readings)
                 sleep(0.5)
                 self.signals.finished.emit()
                 sleep(1)
+                taken_reading = True
+            elif not self.control['read_signal'] and taken_reading:
+                taken_reading = False
         print("Thread completed.")
+
+
+class CoordinatorSignals(QObject):
+    def __init__(self):
+        self.read = pyqtSignal()
+
+
+class MeasurementCoordinator(QRunnable):
+    def __init__(self, interval: int = 10):
+        super(MeasurementCoordinator, self).__init__()
+        self.signals = CoordinatorSignals()
+        self.interval = interval
+
+    def run(self):
+        while True:
+            self.signals.read.emit()
+            sleep(self.interval)
 
 
 class UnitConverterWindow(QWidget):
@@ -305,11 +328,21 @@ class PsychrometricCalculatorWindow(QWidget):
         event.accept()
 
 
+class ChamberTabWidget(QWidget):
+    def __init__(self, num):
+        super().__init__()
+        self.num = num
+
+        layout = QHBoxLayout()
+        self.setLayout(layout)
+
+
 class AppWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super(AppWindow, self).__init__(*args, **kwargs)
 
         self.mass_data = None
+        self.rht_data = None
         self.collection_start_time = None
 
         self.setWindowTitle("Desiccator Controller")
@@ -376,7 +409,8 @@ class AppWindow(QMainWindow):
 
         self.controls = {'measure': False,
                          'calc_shown': False,
-                         'converter_shown': False}
+                         'converter_shown': False,
+                         'read_signal': False}
 
     def clear_clicked(self) -> None:
         if not self.controls['measure']:
@@ -391,20 +425,25 @@ class AppWindow(QMainWindow):
         rht_string = '\n'.join(["Sensor %i - %f \t %f" % (i + 1, rhts[i][0], rhts[i][1]) for i in range(len(rhts))])
         self.rht_box.setText(rht_string)
 
-    def update_plot(self):
-        # This function needs a lot of work
-        # plot updating should occur in this function
-        x_axis = self.mass_data
-        y_axis = self.mass_data
-
     def store_masses(self, data: list) -> None:
-        print('store_masses_called')
         current_time = data.pop(0)
 
         self.mass_data = np.append(self.mass_data, [[current_time - self.collection_start_time, *data]], axis=0)
         print(self.mass_data)
 
+    def store_rht(self, data: list) -> None:
+        self.rht_data = np.append(self.rht_box, [[*data]], axis=0)
+        print(self.rht_data)
+
+    def emit_read_pulse(self) -> None:
+        self.controls['read_signal'] = True
+        sleep(1)
+        self.controls['read_signal'] = False
+
     def measurement_handling(self) -> None:
+        coordinator = MeasurementCoordinator(10)
+        coordinator.signals.read.connect(self.emit_read_pulse)
+
         mass_handler = MassUpdater(self.load_cell_array, self.controls)
         mass_handler.signals.result.connect(self.show_new_masses)
         mass_handler.signals.result.connect(self.store_masses)
@@ -413,6 +452,7 @@ class AppWindow(QMainWindow):
         rht_handler = RHTUpdater(self.rht_sensor_array, self.controls)
         rht_handler.signals.result.connect(self.show_new_rht)
 
+        self.threadpool.start()
         self.threadpool.start(mass_handler)
         self.threadpool.start(rht_handler)
 
@@ -420,15 +460,20 @@ class AppWindow(QMainWindow):
         if not self.controls['measure']:
             self.controls['measure'] = True
             self.collection_start_time = int(time())
-            self.mass_data = np.zeros((1, 3))
+            self.mass_data = np.zeros((1, int(1 + len(self.load_cell_array.num_cells))))
+            self.rht_data = np.zeros((1, int(2 * self.rht_sensor_array.num_sensors)))
             self.measurement_handling()
         else:
             # Add either autosaving or a save-only button that doesn't stop data collection
             self.controls['measure'] = False
             file_name = str(self.collection_start_time) + '_mass_data.csv'
-            headings = 'time, ' + ', '.join(["mass %i" % num for num in range(np.shape(self.mass_data)[1] - 1)])
+            headings = 'time, ' + ', '.join(
+                ["mass %i" % num for num in range(np.shape(self.mass_data)[1] - 1)]) + ', '.join(
+                "rh %i, temp %i" % (num, num) for num in range(self.rht_sensor_array.num_sensors))
             self.mass_data = np.delete(self.mass_data, 0, 0)
+            self.rht_data = np.delete(self.rht_data, 0, 0)
 
+            self.data_to_save = np.append(self.mass_data, self.rht_data, axis=1)
             np.savetxt(file_name, self.mass_data, header=headings, delimiter=', ', fmt='%1.4f')
             self.mass_data = None
 

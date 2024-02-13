@@ -41,6 +41,7 @@ class RHTSensorArray:
         # "cells" should be a list of SHT45 objects with their chambers and sides defined. __init__ will convert it
         # into the proper hierarchy.
         self.sensors = [[], [], [], []]
+        self.num_sensors = 0
 
         if sensors is not None:
             for sensor in sensors:
@@ -51,6 +52,10 @@ class RHTSensorArray:
                 else:
                     index = 1
                 self.sensors[int(sensor.id[0]) - 1].insert(index, sensor)
+
+        for chamber in sensors:
+            for sensor in chamber:
+                self.num_sensors += 1
 
     def take_measurement(self) -> list:
         data = []

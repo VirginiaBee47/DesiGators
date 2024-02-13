@@ -1,32 +1,56 @@
-# %% food mass vs. time plot
+# -*- coding: utf-8 -*-
+"""
+Title: Psychrometric Chart
+Author: Alexander Weaver
+Co-Authors: Virginia Covert, Korynn Haetten, Stanley Moonjeli
+
+Description:
+    A script to generate the psychrometric charts and mass vs. time
+    plots for the DesiGators IPPD project.
+
+Sponsor: Dr. Andrew MacIntosh
+Coach: Dr. Philip Jackson
+
+Thanks:
+    Prathamesh Nachane - for writing a great deal of CoolProp code
+        which is borrowed from herein.
+
+References:
+    1 - https://github.com/prathamesh-nachane/Psychometric-chart-in-Python/blob/master/psycochart.py
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
 import openpyxl
 import pandas as pd
+import time
+import os
+from CoolProp.HumidAirProp import HAPropsSI
+
 
 # input array is _ height x 24 width with 1st column = time and 1st row = headers
 
-def csv_load(in_fold, filename):
 
+def csv_load(in_fold, filename):
     # load csv files necessary to produce psychrometric and mass plots into arrays
 
     pd.read_csv(in_fold + filename + '.csv', delimiter=",").to_excel(in_fold + filename + '.xlsx', index=False)
 
-    wb = openpyxl.load_workbook(in_fold + filename + '.xlsx', data_only=True) # insert workbook name here. data_only=True ignores formulas
-    ws = wb.active # locates sheet to be read
+    wb = openpyxl.load_workbook(in_fold + filename + '.xlsx',
+                                data_only=True)  # insert workbook name here. data_only=True ignores formulas
+    ws = wb.active  # locates sheet to be read
 
-    i = 2 # initial row count
+    i = 2  # initial row count
 
-    #mass_data = ['Time', '1', '2', '3', '4']
-    #rht_data = ['Time', '1I T', '1O T', '2I T', '2O T', '3I T', '3O T', '4I T', '4O T',
+    # mass_data = ['Time', '1', '2', '3', '4']
+    # rht_data = ['Time', '1I T', '1O T', '2I T', '2O T', '3I T', '3O T', '4I T', '4O T',
     #            '1I RH', '1O RH', '2I RH', '2O RH', '3I RH', '3O RH', '4I RH', '4O RH']
 
     mass_data = np.zeros(5)
     rht_data = np.zeros(17)
 
-    while str(ws.cell(row=i, column=1).value) != 'None': # terminates addition to array when no data is found
-
+    while str(ws.cell(row=i, column=1).value) != 'None':
+        # terminates addition to array when no data is found
         # initialize list for current row to append to growing array
 
         list_mass = []
@@ -37,15 +61,13 @@ def csv_load(in_fold, filename):
         list_mass = np.append(list_mass, ws.cell(row=i, column=1).value)
         list_rht = np.append(list_rht, ws.cell(row=i, column=1).value)
 
-        for k in np.arange(2,10,2):
-
-            mass_tot = float(ws.cell(row=i, column=k).value + ws.cell(row=i, column=k+1).value)
+        for k in np.arange(2, 10, 2):
+            mass_tot = float(ws.cell(row=i, column=k).value + ws.cell(row=i, column=k + 1).value)
             list_mass = np.append(list_mass, mass_tot)
 
         mass_data = np.vstack((mass_data, list_mass))
 
-        for k in np.arange(10,26,1):
-
+        for k in np.arange(10, 26, 1):
             list_rht = np.append(list_rht, float(ws.cell(row=i, column=k).value))
 
         rht_data = np.vstack((rht_data, list_rht))
@@ -54,19 +76,8 @@ def csv_load(in_fold, filename):
 
     return mass_data, rht_data
 
-mass_vals, rht_vals = csv_load('', 'datatest')
-
-#print(mass_vals)
-#print(rht_vals)
-
-
-#%% function to plot mass data
-
-import time
-import os
 
 def mass_plot(mass_points, points_interval):
-
     print(mass_points)
 
     mass_points = np.delete(mass_points, 0, 0)
@@ -77,7 +88,7 @@ def mass_plot(mass_points, points_interval):
 
     mass_points_new = mass_points[0][:]
 
-    for i in np.arange(points_interval,len(mass_points),points_interval):
+    for i in np.arange(points_interval, len(mass_points), points_interval):
         mass_points_new = np.vstack((mass_points_new, mass_points[i]))
 
     print(mass_points_new)
@@ -86,10 +97,10 @@ def mass_plot(mass_points, points_interval):
 
     # plotting data for each chamber
 
-    plt.plot(mass_points_new[:,0], mass_points_new[:,1], label='Chamber A')
-    plt.plot(mass_points_new[:,0], mass_points_new[:,2], label='Chamber B')
-    plt.plot(mass_points_new[:,0], mass_points_new[:,3], label='Chamber C')
-    plt.plot(mass_points_new[:,0], mass_points_new[:,4], label='Chamber D')
+    plt.plot(mass_points_new[:, 0], mass_points_new[:, 1], label='Chamber A')
+    plt.plot(mass_points_new[:, 0], mass_points_new[:, 2], label='Chamber B')
+    plt.plot(mass_points_new[:, 0], mass_points_new[:, 3], label='Chamber C')
+    plt.plot(mass_points_new[:, 0], mass_points_new[:, 4], label='Chamber D')
 
     plt.legend()
     plt.xlabel('Time [min]')
@@ -111,25 +122,6 @@ def mass_plot(mass_points, points_interval):
     imgname = 'plots/' + name
 
     return imgname
-
-mass_plot(mass_vals, 4)
-plt.show()
-
-# %% psychrometric plot
-
-# -*- coding: utf-8 -*-
-"""
-@author: Prathamesh Nachane
-
-DesiGators owes this man a beer
-"""
-
-import numpy as np
-import matplotlib.pyplot as plt
-from CoolProp.HumidAirProp import HAPropsSI
-#mport math
-
-'''Function to plot psychrometric chart'''
 
 
 def plot_psy_chart(x_low_limit=20, x_upp_limit=60, y_low_limit=0, y_upp_limit=0.03, p=101325, RH_lines='y',
@@ -205,20 +197,19 @@ def plot_points(arr, figure, axes, col='b', typ='-', grid='on'):
     for i in range(len(arr)):
         b[i] = arr[i][0]
         c[i] = arr[i][1]
-        #label = str(calc_prop_of(i, arr[i][0], arr[i][1]))
-        #axes.scatter(b[i], c[i], s=30, color=col, label=label)
-        #axes.legend(loc=0, fontsize='xx-small', framealpha=0.25)
+        # label = str(calc_prop_of(i, arr[i][0], arr[i][1]))
+        # axes.scatter(b[i], c[i], s=30, color=col, label=label)
+        # axes.legend(loc=0, fontsize='xx-small', framealpha=0.25)
     axes.plot(b, c, colstr)
     if grid == 'on':
         axes.grid(linestyle='--', alpha=0.5, linewidth=1)
-    #for i in range(len(arr)):
-        #axes.text(1.01 * arr[i][0], 1.05 * arr[i][1], str(i + 1), style='italic', size='medium',
-                  #bbox={'facecolor': col, 'alpha': 0.5, 'pad': 1})
+    # for i in range(len(arr)):
+    # axes.text(1.01 * arr[i][0], 1.05 * arr[i][1], str(i + 1), style='italic', size='medium',
+    # bbox={'facecolor': col, 'alpha': 0.5, 'pad': 1})
     axes.plot()
     return (figure, axes)
 
 
-# %%
 def calc_prop_of(counter, xdata, ydata):
     a = 'Point: ' + str(counter + 1)
     b = "-- R = " + str(round(100 * HAPropsSI('R', 'T', xdata + 273, 'P', 101325, 'W', ydata), 2)) + ' %'
@@ -229,15 +220,14 @@ def calc_prop_of(counter, xdata, ydata):
     return (str(a + b + c + d + e))
 
 
-
 def plot_psy_chart_w_points(psychro_points):
-
     plt.figure(2)
 
-    #plt.close("all")
+    # plt.close("all")
 
-    figure, axes = plot_psy_chart(x_low_limit=-10, x_upp_limit=60, y_low_limit=0, y_upp_limit=0.03, p=101325, RH_lines='y',
-                                H_lines='y', WB_lines='y')
+    figure, axes = plot_psy_chart(x_low_limit=-10, x_upp_limit=60, y_low_limit=0, y_upp_limit=0.03, p=101325,
+                                  RH_lines='y',
+                                  H_lines='y', WB_lines='y')
 
     # psychro_points will take the place of variable 'a'
 
@@ -263,6 +253,15 @@ def plot_psy_chart_w_points(psychro_points):
     return imgname
 
 
-psychro_points = [[50, 0.007], [40, 0.006], [30, 0.003]]
-plot_psy_chart_w_points(psychro_points)
+def main():
+    mass_vals, rht_vals = csv_load('', 'datatest')
 
+    mass_plot(mass_vals, 4)
+    plt.show()
+
+    psychro_points = [[50, 0.007], [40, 0.006], [30, 0.003]]
+    plot_psy_chart_w_points(psychro_points)
+
+
+if __name__ == '__main__':
+    main()

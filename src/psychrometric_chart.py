@@ -14,7 +14,7 @@ Coach: Dr. Philip Jackson
 References:
     1 - https://journals.ametsoc.org/view/journals/apme/57/6/jamc-d-17-0334.1.xml
     2 - https://www.1728.org/relhum.htm
-    X - https://www.caee.utexas.edu/prof/novoselac/classes/are383/handouts/f01_06si.pdf
+    3 - https://www.caee.utexas.edu/prof/novoselac/classes/are383/handouts/f01_06si.pdf
 """
 
 from math import exp, sqrt
