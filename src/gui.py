@@ -25,7 +25,8 @@ from PyQt6.QtGui import (
 )
 
 from exceptions import PointNotDefinedException, InvalidParamsException
-from psychrometric_chart import PsychrometricProperties
+from psychrometric_calc import PsychrometricProperties
+from unit_converter import convert_units
 from components.load_cell import LoadCellArray
 from components.sht45 import RHTSensorArray, SHT45
 
@@ -197,7 +198,17 @@ class UnitConverterWindow(QWidget):
         self.setLayout(layout)
 
     def calculate_clicked(self) -> None:
-        pass
+        value_type = self.value_type_dropdown.currentText()
+        unit_a = self.known_value_dropdown.currentText()
+        unit_b = self.calc_value_dropdown.currentText()
+        try:
+            value_a = float(self.known_value_line_edit.text())
+        except ValueError as e:
+            print(e)
+            return
+
+        value_b = convert_units(value_type, unit_a, unit_b, value_a)
+        self.calc_value_line_edit.setText(str(value_b))
 
     def value_type_dropdown_index_changed(self, index) -> list:
         units = None
@@ -235,7 +246,7 @@ class UnitConverterWindow(QWidget):
             units = ['kJ/kg', 'Btu/lbm']
         elif index == 9:
             # Specific Heat Capacity
-            units = ['kJ/kg\u00B7K', 'Btu/lb\u00B7\u00B0R']
+            units = ['kJ/kg\u00B7K', 'Btu/lbm\u00B7\u00B0R']
 
         self.known_value_dropdown.clear()
         self.known_value_dropdown.addItems(units)
