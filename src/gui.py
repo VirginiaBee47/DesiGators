@@ -236,6 +236,9 @@ class UnitConverterWindow(QWidget):
         elif index == 7:
             # Specific Heat Capacity
             units = ['kJ/kg\u00B7K', 'Btu/lb\u00B7\u00B0R']
+        
+        print(index)
+        print(units)
 
         self.known_value_dropdown.clear()
         self.known_value_dropdown.addItems(units)
