@@ -17,7 +17,8 @@ from PyQt6.QtWidgets import (
     QLabel,
     QWidget,
     QVBoxLayout,
-    QHBoxLayout
+    QHBoxLayout,
+    QComboBox
 )
 from PyQt6.QtGui import (
     QAction
@@ -71,7 +72,7 @@ class MassUpdater(QRunnable):
                 self.signals.result.emit(readings)
                 sleep(0.5)
                 self.signals.finished.emit()
-                sleep(3)
+                sleep(2)
                 taken_reading = True
             elif not self.control['read_signal'] and taken_reading:
                 taken_reading = False
@@ -142,6 +143,118 @@ class UnitConverterWindow(QWidget):
         self.setWindowTitle("Unit Converter")
 
         self.parent = parent
+
+        # Define row layouts (rows ordered top to bottom)
+        row_one_layout = QHBoxLayout()
+        row_two_layout = QHBoxLayout()
+        row_three_layout = QHBoxLayout()
+
+        # Building row one (row to include title/large label and value dropdown)
+        header_label = QLabel("Heading")
+
+        self.value_type_dropdown = QComboBox()
+        self.value_type_dropdown.addItems(['Select a value type', 'Mass', 'Volume', 'Temperature', 'Pressure',
+                                           'Mass Flow Rate', 'Volumetric Flow Rate', 'Energy', 'Power',
+                                           'Specific Enthalpy', 'Specific Heat Capacity'])
+        self.value_type_dropdown.currentIndexChanged.connect(self.value_type_dropdown_index_changed)
+
+        row_one_layout.addWidget(header_label)
+        row_one_layout.addWidget(self.value_type_dropdown)
+
+        # Building row two (row to include two input boxes, two dropdowns, and flip button)
+        self.known_value_line_edit = QLineEdit()
+
+        self.known_value_dropdown = QComboBox()
+        self.known_value_dropdown.addItem("Select a value type above")
+
+        flip_button = QPushButton()
+        flip_button.clicked.connect(self.flip_clicked)
+
+        self.calc_value_line_edit = QLineEdit()
+        self.calc_value_line_edit.setReadOnly(True)
+
+        self.calc_value_dropdown = QComboBox()
+        self.calc_value_dropdown.addItem("Select a value type above")
+
+        row_two_layout.addWidget(self.known_value_line_edit)
+        row_two_layout.addWidget(self.known_value_dropdown)
+        row_two_layout.addWidget(flip_button)
+        row_two_layout.addWidget(self.calc_value_line_edit)
+        row_two_layout.addWidget(self.calc_value_dropdown)
+
+        # Building row three (row to include spacers and calculate button)
+        calculate_button = QPushButton("Calculate")
+        calculate_button.clicked.connect(self.calculate_clicked)
+
+        row_three_layout.addWidget(calculate_button)
+
+        # Add together rows to make window layout
+        layout = QVBoxLayout()
+        layout.addLayout(row_one_layout)
+        layout.addLayout(row_two_layout)
+        layout.addLayout(row_three_layout)
+
+        self.setLayout(layout)
+
+    def calculate_clicked(self) -> None:
+        pass
+
+    def value_type_dropdown_index_changed(self, index) -> list:
+        units = None
+
+        if self.value_type_dropdown.itemText(0) == 'Select a value type':
+            self.value_type_dropdown.removeItem(0)
+            index -= 1
+
+        if index == 0:
+            # Mass
+            units = ['g', 'kg', 'lbm']
+        elif index == 1:
+            # Volume
+            units = ['ft³', 'm³', 'L', 'mL']
+        elif index == 2:
+            # Temperature
+            units = [chr(176) + 'C', chr(176) + 'F', 'K', chr(176) + 'R',]
+        elif index == 3:
+            # Pressure
+            units = ['Pa', 'psi', 'mmHg', 'atm', 'bar', 'torr']
+        elif index == 4:
+            # Mass Flow Rate
+            units = ['kg/s', 'lb/s']
+        elif index == 4:
+            # Volumetric Flow Rate
+            units = ['SCFM', 'SCFH', 'SLPM', 'm³/h']
+        elif index == 5:
+            # Energy
+            units = ['J', 'kJ', 'kWh', 'Btu', 'kcal', 'keV']
+        elif index == 6:
+            # Power
+            units = ['W', 'kW', 'hp', 'Btu/h', 'RT']
+        elif index == 6:
+            # Specific Enthalpy
+            units = ['kJ/kg', 'Btu/lbm']
+        elif index == 7:
+            # Specific Heat Capacity
+            units = ['kJ/kg\u00B7K', 'Btu/lb\u00B7\u00B0R']
+
+        self.known_value_dropdown.clear()
+        self.known_value_dropdown.addItems(units)
+
+        self.calc_value_dropdown.clear()
+        self.calc_value_dropdown.addItems(units)
+
+        return units
+
+    def flip_clicked(self) -> None:
+        calc_value = self.calc_value_line_edit.text()
+
+        self.known_value_line_edit.setText(calc_value)
+        self.calc_value_line_edit.setText("")
+
+        known_unit_index = self.known_value_dropdown.currentIndex()
+        calc_unit_index = self.calc_value_dropdown.currentIndex()
+        self.known_value_dropdown.setCurrentIndex(calc_unit_index)
+        self.calc_value_dropdown.setCurrentIndex(known_unit_index)
 
     def closeEvent(self, event):
         # Override the closeEvent method that exists and replace with controls editing to exit ongoing threads
@@ -430,7 +543,6 @@ class AppWindow(QMainWindow):
 
     def store_masses(self, data: list) -> None:
         current_time = data.pop(0)
-
         self.mass_data = np.append(self.mass_data, [[current_time - self.collection_start_time, *data]], axis=0)
         print(self.mass_data)
 
@@ -484,7 +596,6 @@ class AppWindow(QMainWindow):
             return file_name
 
     def show_calculator_clicked(self) -> None:
-        print(self.controls['calc_shown'])
         if not self.controls['calc_shown']:
             # then show the calc
             self.controls['calc_shown'] = True
