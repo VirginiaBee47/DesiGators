@@ -21,7 +21,8 @@ from PyQt6.QtWidgets import (
     QComboBox
 )
 from PyQt6.QtGui import (
-    QAction
+    QAction,
+    QFont
 )
 
 from exceptions import PointNotDefinedException, InvalidParamsException
@@ -168,7 +169,8 @@ class UnitConverterWindow(QWidget):
         self.known_value_dropdown = QComboBox()
         self.known_value_dropdown.addItem("Select a value type above")
 
-        flip_button = QPushButton()
+        flip_button = QPushButton('\u21D4')
+        flip_button.setFont(QFont('Times', 16))
         flip_button.clicked.connect(self.flip_clicked)
 
         self.calc_value_line_edit = QLineEdit()
