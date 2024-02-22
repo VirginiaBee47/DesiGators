@@ -221,24 +221,21 @@ class UnitConverterWindow(QWidget):
         elif index == 4:
             # Mass Flow Rate
             units = ['kg/s', 'lb/s']
-        elif index == 4:
+        elif index == 5:
             # Volumetric Flow Rate
             units = ['SCFM', 'SCFH', 'SLPM', 'm³/h']
-        elif index == 5:
+        elif index == 6:
             # Energy
             units = ['J', 'kJ', 'kWh', 'Btu', 'kcal', 'keV']
-        elif index == 6:
+        elif index == 7:
             # Power
             units = ['W', 'kW', 'hp', 'Btu/h', 'RT']
-        elif index == 6:
+        elif index == 8:
             # Specific Enthalpy
             units = ['kJ/kg', 'Btu/lbm']
-        elif index == 7:
+        elif index == 9:
             # Specific Heat Capacity
             units = ['kJ/kg\u00B7K', 'Btu/lb\u00B7\u00B0R']
-        
-        print(index)
-        print(units)
 
         self.known_value_dropdown.clear()
         self.known_value_dropdown.addItems(units)
