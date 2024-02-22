@@ -208,7 +208,7 @@ class UnitConverterWindow(QWidget):
             return
 
         value_b = convert_units(value_type, unit_a, unit_b, value_a)
-        self.calc_value_line_edit.setText(str(value_b))
+        self.calc_value_line_edit.setText("{:.3f}".format(value_b))
 
     def value_type_dropdown_index_changed(self, index) -> list:
         units = None
