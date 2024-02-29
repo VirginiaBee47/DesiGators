@@ -513,7 +513,7 @@ class ChamberTabWidget(QWidget):
         conditions_1 = QLabel('Operating Conditions 1')
         conditions_box_layout.addWidget(conditions_1)
         separator = QFrame()
-        separator.setFrameShape(4)
+        separator.setFrameShape(QFrame.Shape.VLine)
         separator.setLineWidth(2)
         conditions_box_layout.addWidget(separator)
         conditions_2 = QLabel('Operating Conditions 2')
