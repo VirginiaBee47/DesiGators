@@ -2,7 +2,15 @@ from os import getcwd, chdir
 
 from numpy import polyfit, array, quantile
 
-import hx711
+import openpyxl
+from time import time
+
+try:
+    import hx711
+except ImportError:
+    print("You seem to be testing on a device that's not a RaspberryPi (or does not have RPi.GPIO installed). "
+          "Continuing with reduced features...")
+
 
 class LoadCell(hx711.HX711):
     def __init__(self, data_pin: int, clock_pin: int, gain: int=128, channel: str='A', chamber: int=1, side: str='L', m: float=None, b: float=None):
@@ -31,7 +39,7 @@ class LoadCell(hx711.HX711):
         self.offset = average_val
 
     def take_measurement(self) -> float:
-        readings = self.get_raw_data(25)
+        readings = self.get_raw_data(10)
 
         readings = array(readings)
         readings = readings[(readings > quantile(readings, 0.1)) & (readings < quantile(readings, 0.9))].tolist()
@@ -112,7 +120,6 @@ class LoadCellArray:
         if __name__ != '__main__':
             print('Changing dir...')
             chdir('components/')
-        print(getcwd())
 
         with open(getcwd() + '/cache/load_cells.txt', 'r') as file:
             data_string = file.read()
@@ -162,9 +169,6 @@ class LoadCellArray:
             for cell in chamber:
                 cell.calibrate()
 
-
-import openpyxl
-from time import time
 
 def save_rht_vals(rht_vals):
     path = '/home/admin/Documents/Drying Data/RHT'

@@ -3,7 +3,6 @@ import numpy as np
 
 from time import sleep, time
 from PyQt6.QtCore import (
-    Qt,
     QRunnable,
     QThreadPool,
     QObject,
@@ -18,7 +17,10 @@ from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
-    QComboBox
+    QComboBox,
+    QCheckBox,
+    QScrollArea,
+    QTabWidget
 )
 from PyQt6.QtGui import (
     QAction,
@@ -221,16 +223,16 @@ class UnitConverterWindow(QWidget):
 
         if index == 0:
             # Mass
-            units = ['g', 'kg', 'lbm']
+            units = ['g', 'kg', 'lbm', 'slug', 'firkin']
         elif index == 1:
             # Volume
-            units = ['ft³', 'm³', 'L', 'mL']
+            units = ['ft³', 'm³', 'L', 'mL', 'butt', 'hogsheads']
         elif index == 2:
             # Temperature
             units = [chr(176) + 'C', chr(176) + 'F', 'K', chr(176) + 'R',]
         elif index == 3:
             # Pressure
-            units = ['Pa', 'psi', 'mmHg', 'atm', 'bar', 'torr']
+            units = ['Pa', 'psi', 'mmHg', 'atm', 'bar', 'torr', 'beard-second-black-hole']
         elif index == 4:
             # Mass Flow Rate
             units = ['kg/s', 'lb/s']
@@ -242,7 +244,7 @@ class UnitConverterWindow(QWidget):
             units = ['J', 'kJ', 'kWh', 'Btu', 'kcal', 'keV']
         elif index == 7:
             # Power
-            units = ['W', 'kW', 'hp', 'Btu/h', 'RT']
+            units = ['W', 'kW', 'hp', 'dp', 'Btu/h', 'RT']
         elif index == 8:
             # Specific Enthalpy
             units = ['kJ/kg', 'Btu/lbm']
@@ -458,12 +460,71 @@ class PsychrometricCalculatorWindow(QWidget):
 
 
 class ChamberTabWidget(QWidget):
-    def __init__(self, num):
+    def __init__(self, parent, num):
         super().__init__()
+        self.parent = parent  # Figure out if this import is necessary
         self.num = num
 
         layout = QHBoxLayout()
         self.setLayout(layout)
+
+        # Create two main columns
+        left_layout = QVBoxLayout()  # left_layout contains two plots (mass on top and psychro on bottom)
+        right_layout = QVBoxLayout()  # right_layout contains three boxes controls on top, then current operating
+                                      # conditions, then log with warnings/errors
+
+        # Define left_layout
+        left_layout.addWidget(QLabel('Mass Plot Here'))
+        left_layout.addWidget(QLabel('Psychro Plot Here'))
+
+        # Define right_layout
+            # Define and add controls box
+        controls_box = QWidget()
+        controls_box.setStyleSheet("border: 2px solid black;")
+        controls_box_layout = QVBoxLayout()
+        controls_box.setLayout(controls_box_layout)
+
+        heater_control_layout = QHBoxLayout()
+        heater_checkbox = QCheckBox()
+        heater_label = QLabel('Heater On')
+        heater_control_layout.addWidget(heater_checkbox)
+        heater_control_layout.addWidget(heater_label)
+
+        record_control_layout = QHBoxLayout()
+        record_checkbox = QCheckBox()
+        record_label = QLabel('Recording')
+        record_control_layout.addWidget(record_checkbox)
+        record_control_layout.addWidget(record_label)
+
+        controls_box_layout.addLayout(heater_control_layout)
+        controls_box_layout.addLayout(record_control_layout)
+
+        right_layout.addWidget(controls_box)
+
+            # Define and add operating conditions box
+        conditions_box = QWidget()
+        conditions_box.setStyleSheet("border: 2px solid black;")
+        conditions_box_layout = QHBoxLayout()
+        conditions_box.setLayout(conditions_box_layout)
+
+        conditions_1 = QLabel('Operating Conditions 1')
+        conditions_box_layout.addWidget(conditions_1)
+        conditions_2 = QLabel('Operating Conditions 2')
+        conditions_box_layout.addWidget(conditions_2)
+
+        right_layout.addWidget(conditions_box)
+
+            # Define and add log box
+        log_box = QScrollArea()
+        log_box.setStyleSheet("border: 2px solid black;")
+        log_label = QLabel('Log Goes Here')
+        log_box.setWidget(log_label)
+
+        right_layout.addWidget(log_box)
+
+        # Add both layouts together
+        layout.addLayout(left_layout)
+        layout.addLayout(right_layout)
 
 
 class AppWindow(QMainWindow):
@@ -491,7 +552,6 @@ class AppWindow(QMainWindow):
         menu_menubar.addAction(show_converter)
 
         # Create 2 main columns
-        dialogue_plot_layout = QHBoxLayout()
         output_calc_layout = QVBoxLayout()
 
         # Create output_calc_layout (layout including dialogue box for errors, plot, and button to calculate)
@@ -520,13 +580,20 @@ class AppWindow(QMainWindow):
         button_layout.addWidget(clear_button, 2)
         button_layout.addWidget(measure_button, 2)
 
-        dialogue_plot_layout.addWidget(self.dialogue_box)
-        # dialogue_plot_layout.addWidget(self.mass_plot)
-
-        output_calc_layout.addLayout(dialogue_plot_layout, 10)
+        output_calc_layout.addWidget(self.dialogue_box, 10)
         output_calc_layout.addWidget(self.mass_box, 40)
         output_calc_layout.addWidget(self.rht_box, 40)
         output_calc_layout.addLayout(button_layout, 10)
+
+        # Test tabs below buttons
+        tabs = QTabWidget(self)
+
+        chamber_1_tab = ChamberTabWidget(self, 1)
+        chamber_2_tab = ChamberTabWidget(self, 2)
+
+        tabs.addTab(chamber_1_tab)
+        tabs.addTab(chamber_2_tab)
+        output_calc_layout.addWidget(tabs)
 
         layout.addLayout(output_calc_layout)
 
@@ -592,7 +659,7 @@ class AppWindow(QMainWindow):
             self.rht_data = np.zeros((1, int(2 * self.rht_sensor_array.num_sensors)))
             self.measurement_handling()
         else:
-            # Add either autosaving or a save-only button that doesn't stop data collection
+            # Add either auto-saving or a save-only button that doesn't stop data collection
             self.controls['measure'] = False
             file_name = str(self.collection_start_time) + '_data.csv'
             headings = 'time, ' + ', '.join(
