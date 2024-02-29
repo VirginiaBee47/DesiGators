@@ -20,7 +20,8 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QCheckBox,
     QScrollArea,
-    QTabWidget
+    QTabWidget,
+    QFrame
 )
 from PyQt6.QtGui import (
     QAction,
@@ -511,6 +512,10 @@ class ChamberTabWidget(QWidget):
 
         conditions_1 = QLabel('Operating Conditions 1')
         conditions_box_layout.addWidget(conditions_1)
+        separator = QFrame()
+        separator.setFrameShape(QFrame.VLine)
+        separator.setLineWidth(2)
+        conditions_box_layout.addWidget(separator)
         conditions_2 = QLabel('Operating Conditions 2')
         conditions_box_layout.addWidget(conditions_2)
 
