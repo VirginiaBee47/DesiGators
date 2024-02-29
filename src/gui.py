@@ -591,8 +591,8 @@ class AppWindow(QMainWindow):
         chamber_1_tab = ChamberTabWidget(self, 1)
         chamber_2_tab = ChamberTabWidget(self, 2)
 
-        tabs.addTab(chamber_1_tab)
-        tabs.addTab(chamber_2_tab)
+        tabs.addTab(chamber_1_tab, 'Chamber 1')
+        tabs.addTab(chamber_2_tab, 'Chamber 2')
         output_calc_layout.addWidget(tabs)
 
         layout.addLayout(output_calc_layout)
