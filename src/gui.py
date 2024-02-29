@@ -3,6 +3,7 @@ import numpy as np
 
 from time import sleep, time
 from PyQt6.QtCore import (
+    Qt,
     QRunnable,
     QThreadPool,
     QObject,
@@ -490,13 +491,13 @@ class ChamberTabWidget(QWidget):
         heater_checkbox = QCheckBox()
         heater_label = QLabel('Heater On')
         heater_control_layout.addWidget(heater_checkbox)
-        heater_control_layout.addWidget(heater_label)
+        heater_control_layout.addWidget(heater_label, alignment=Qt.AlignmentFlag.AlignLeft)
 
         record_control_layout = QHBoxLayout()
         record_checkbox = QCheckBox()
         record_label = QLabel('Recording')
         record_control_layout.addWidget(record_checkbox)
-        record_control_layout.addWidget(record_label)
+        record_control_layout.addWidget(record_label, alignment=Qt.AlignmentFlag.AlignLeft)
 
         controls_box_layout.addLayout(heater_control_layout)
         controls_box_layout.addLayout(record_control_layout)
