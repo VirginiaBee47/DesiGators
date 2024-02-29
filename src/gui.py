@@ -489,8 +489,7 @@ class ChamberTabWidget(QWidget):
         controls_box.setLayout(controls_box_layout)
 
         heater_control_layout = QHBoxLayout()
-        heater_control_layout.setSpacing(0)
-        heater_control_layout.setContentsMargins(0, 0, 0, 0)
+        heater_control_layout.setSpacing(5)
         heater_control_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         heater_checkbox = QCheckBox()
         heater_label = QLabel('Heater On')
