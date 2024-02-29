@@ -1,4 +1,5 @@
 import sys
+import os
 import numpy as np
 
 from time import sleep, time
@@ -560,10 +561,17 @@ class AppWindow(QMainWindow):
         show_converter.setStatusTip("Display Unit Converter")
         show_converter.triggered.connect(self.show_converter_clicked)
 
+        open_qr_code = QAction("Display &QR Code", self)
+        open_qr_code.setStatusTip("Show QR code linking to newest SOP")
+        open_qr_code.triggered.connect(self.open_qr_code)
+
         menu = self.menuBar()
         menu_menubar = menu.addMenu("&Menu")
         menu_menubar.addAction(show_calculator)
         menu_menubar.addAction(show_converter)
+
+        help_menubar = menu.addMenu("&Help")
+        help_menubar.addAction(open_qr_code)
 
         # Create 2 main columns
         output_calc_layout = QVBoxLayout()
@@ -706,6 +714,10 @@ class AppWindow(QMainWindow):
         else:
             self.dialogue_box.setText("Unit converter already shown.")
 
+    def open_qr_code(self) -> None:
+        path_to_img = '~/Pictures/Main_GUI.png'
+        os.system(path_to_img)
+        
     def closeEvent(self, event):
         # Override the closeEvent method that exists and replace with controls editing to exit ongoing threads
         self.controls['measure'] = False
