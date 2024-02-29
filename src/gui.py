@@ -480,7 +480,8 @@ class ChamberTabWidget(QWidget):
         # Define right_layout
             # Define and add controls box
         controls_box = QWidget()
-        controls_box.setStyleSheet("border: 2px solid black;")
+        controls_box.setObjectName('controls_box')
+        controls_box.setStyleSheet("QWidget#controls_box {border: 2px solid black;}")
         controls_box_layout = QVBoxLayout()
         controls_box.setLayout(controls_box_layout)
 
