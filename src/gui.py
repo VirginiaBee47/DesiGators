@@ -504,7 +504,8 @@ class ChamberTabWidget(QWidget):
 
             # Define and add operating conditions box
         conditions_box = QWidget()
-        conditions_box.setStyleSheet("border: 2px solid black;")
+        conditions_box.setObjectName('conditions_box')
+        conditions_box.setStyleSheet("QWidget#conditions_box {border: 2px solid black;}")
         conditions_box_layout = QHBoxLayout()
         conditions_box.setLayout(conditions_box_layout)
 
@@ -517,7 +518,8 @@ class ChamberTabWidget(QWidget):
 
             # Define and add log box
         log_box = QScrollArea()
-        log_box.setStyleSheet("border: 2px solid black;")
+        log_box.setObjectName('log_box')
+        log_box.setStyleSheet("QWidget#log_box {border: 2px solid black;}")
         log_label = QLabel('Log Goes Here')
         log_box.setWidget(log_label)
 
