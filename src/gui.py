@@ -488,12 +488,14 @@ class ChamberTabWidget(QWidget):
         controls_box.setLayout(controls_box_layout)
 
         heater_control_layout = QHBoxLayout()
+        heater_control_layout.setSpacing(0)
         heater_checkbox = QCheckBox()
         heater_label = QLabel('Heater On')
         heater_control_layout.addWidget(heater_checkbox)
         heater_control_layout.addWidget(heater_label, alignment=Qt.AlignmentFlag.AlignLeft)
 
         record_control_layout = QHBoxLayout()
+        record_control_layout.setSpacing(0)
         record_checkbox = QCheckBox()
         record_label = QLabel('Recording')
         record_control_layout.addWidget(record_checkbox)
