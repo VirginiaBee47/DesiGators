@@ -22,7 +22,8 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QScrollArea,
     QTabWidget,
-    QFrame
+    QFrame,
+    QSpacerItem
 )
 from PyQt6.QtGui import (
     QAction,
@@ -490,6 +491,7 @@ class ChamberTabWidget(QWidget):
         heater_control_layout = QHBoxLayout()
         heater_control_layout.setSpacing(0)
         heater_control_layout.setContentsMargins(0, 0, 0, 0)
+        heater_control_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         heater_checkbox = QCheckBox()
         heater_label = QLabel('Heater On')
         heater_control_layout.addWidget(heater_checkbox)
