@@ -463,15 +463,6 @@ class PsychrometricCalculatorWindow(QWidget):
         event.accept()
 
 
-class QChamberTabWidget(QTabWidget):
-    def __init__(self):
-        super().__init__()
-
-    def changeEvent(self, event):
-        print(event)
-        # self.widget()
-        event.accept()
-
 class ChamberTabPage(QWidget):
     def __init__(self, mainwindow, num):
         super().__init__()
@@ -622,7 +613,8 @@ class AppWindow(QMainWindow):
         output_calc_layout.addLayout(button_layout, 10)
 
         # Test tabs below buttons
-        self.tabs = QChamberTabWidget()
+        self.tabs = QTabWidget()
+        self.tabs.currentChanged.connect(self.tab_changed)
 
         # Play around with declaring tabs in self or each chamber tab individually or both
         self.chamber_1_tab = ChamberTabPage(self, 1)
@@ -639,6 +631,10 @@ class AppWindow(QMainWindow):
         self.setCentralWidget(widget)
 
         self.threadpool = QThreadPool()
+
+        self.tab_dict = {0: self.chamber_1_tab,
+                         1: self.chamber_2_tab,
+                         2: ''}
 
         self.controls = {'measure': False,
                          'calc_shown': False,
@@ -730,6 +726,9 @@ class AppWindow(QMainWindow):
     def open_qr_code(self) -> None:
         path_to_img = '~/Pictures/Main_GUI.png'
         os.system(path_to_img)
+
+    def tab_changed(self, i):
+        self.tab_dict[i].record_checkbox.setChecked(self.controls['measure'])
 
     def closeEvent(self, event):
         # Override the closeEvent method that exists and replace with controls editing to exit ongoing threads
