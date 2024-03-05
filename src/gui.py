@@ -129,18 +129,34 @@ class CoordinatorSignals(QObject):
 
 
 class MeasurementCoordinator(QRunnable):
-    def __init__(self, control, interval: int = 10):
+    def __init__(self, _cell_array: LoadCellArray, _sensor_array: RHTSensorArray, controls, interval: int = 10):
         super(MeasurementCoordinator, self).__init__()
         self.signals = CoordinatorSignals()
+        self.rht_signals = RHTSignals()
+        self.mass_signals = MassSignals()
+        self.rht_array = _sensor_array
+        self.mass_array = _cell_array
         self.interval = interval
-        self.control = control
+        self.controls = controls
 
     def run(self):
         while True:
-            if not self.control['measure']:
+            if not self.controls['measure']:
                 break
             else:
-                sleep(self.interval)
+                measurement_start_time = time()
+
+                rht_readings = self.rht_array.take_measurement()
+                self.rht_signals.result.emit(rht_readings)
+
+                mass_readings = self.mass_array.take_measurement()
+                mass_readings.insert(0, time())
+                self.mass_signals.result.emit(mass_readings)
+
+                measurement_stop_time = time()
+                time_elapsed = measurement_stop_time - measurement_start_time
+                if time_elapsed < self.interval:
+                    sleep(self.interval - time_elapsed)
                 self.signals.read.emit()
 
 
@@ -681,19 +697,23 @@ class AppWindow(QMainWindow):
         self.controls['read_signal'] = False
 
     def measurement_handling(self) -> None:
-        coordinator = MeasurementCoordinator(self.controls)
+        coordinator = MeasurementCoordinator(self.load_cell_array, self.rht_sensor_array, self.controls)
         coordinator.signals.read.connect(self.emit_read_pulse)
+        coordinator.mass_signals.result.connect(self.show_new_masses)
+        coordinator.mass_signals.result.connect(self.store_masses)
+        coordinator.rht_signals.result.connect(self.show_new_rht)
+        coordinator.rht_signals.result.connect(self.store_rht)
 
-        mass_handler = MassUpdater(self.load_cell_array, self.controls)
-        mass_handler.signals.result.connect(self.show_new_masses)
-        mass_handler.signals.result.connect(self.store_masses)
-
-        rht_handler = RHTUpdater(self.rht_sensor_array, self.controls)
-        rht_handler.signals.result.connect(self.show_new_rht)
-        rht_handler.signals.result.connect(self.store_rht)
-
-        self.threadpool.start(mass_handler)
-        self.threadpool.start(rht_handler)
+        # mass_handler = MassUpdater(self.load_cell_array, self.controls)
+        # mass_handler.signals.result.connect(self.show_new_masses)
+        # mass_handler.signals.result.connect(self.store_masses)
+        #
+        # rht_handler = RHTUpdater(self.rht_sensor_array, self.controls)
+        # rht_handler.signals.result.connect(self.show_new_rht)
+        # rht_handler.signals.result.connect(self.store_rht)
+        #
+        # self.threadpool.start(mass_handler)
+        # self.threadpool.start(rht_handler)
         self.threadpool.start(coordinator)
 
     def measurement_clicked(self) -> str:
