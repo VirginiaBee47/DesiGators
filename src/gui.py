@@ -542,8 +542,8 @@ class ChamberTabPage(QWidget):
         layout.addLayout(left_layout, 3)
         layout.addLayout(right_layout, 1)
 
-    def record_checked(self, checked: bool) -> None:
-        print("Record was checked to: %s" % (str(checked)))
+    def record_checked(self, checked) -> None:
+        print(checked)
         self.mainwindow.controls['measure'] = checked
         self.mainwindow.measurement_clicked()
 
