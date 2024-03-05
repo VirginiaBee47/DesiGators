@@ -614,6 +614,7 @@ class AppWindow(QMainWindow):
 
         # Test tabs below buttons
         self.tabs = QTabWidget()
+        self.tabs.blockSignals(True)
         self.tabs.currentChanged.connect(self.tab_changed)
 
         # Play around with declaring tabs in self or each chamber tab individually or both
@@ -640,6 +641,8 @@ class AppWindow(QMainWindow):
                          'calc_shown': False,
                          'converter_shown': False,
                          'read_signal': False}
+
+        self.tabs.blockSignals(False)
 
     def clear_clicked(self) -> None:
         if not self.controls['measure']:
