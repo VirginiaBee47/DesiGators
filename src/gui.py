@@ -69,13 +69,13 @@ class MassUpdater(QRunnable):
 
     def run(self):
         taken_reading = False
-        print("Thread started.")
+        print("Thread started. [Mass]")
 
         while True:
             if not self.control['measure']:
                 break
             elif self.control['read_signal'] and not taken_reading:
-                print(readings := self._array.take_measurement())
+                readings = self._array.take_measurement()
                 readings.insert(0, time())
                 self.signals.result.emit(readings)
                 sleep(0.5)
@@ -84,7 +84,7 @@ class MassUpdater(QRunnable):
                 taken_reading = True
             elif not self.control['read_signal'] and taken_reading:
                 taken_reading = False
-        print("Thread completed.")
+        print("Thread completed. [Mass]")
 
 
 class RHTSignals(QObject):
@@ -108,12 +108,12 @@ class RHTUpdater(QRunnable):
     def run(self):
         taken_reading = False
 
-        print("Thread started.")
+        print("Thread started. [RHT]")
         while True:
             if not self.control['measure']:
                 break
             elif self.control['read_signal'] and not taken_reading:
-                print(readings := self._array.take_measurement())
+                readings = self._array.take_measurement()
                 self.signals.result.emit(readings)
                 sleep(0.5)
                 self.signals.finished.emit()
@@ -121,7 +121,7 @@ class RHTUpdater(QRunnable):
                 taken_reading = True
             elif not self.control['read_signal'] and taken_reading:
                 taken_reading = False
-        print("Thread completed.")
+        print("Thread completed. [RHT]")
 
 
 class CoordinatorSignals(QObject):
@@ -543,6 +543,7 @@ class ChamberTabPage(QWidget):
         layout.addLayout(right_layout, 1)
 
     def record_checked(self, checked: bool) -> None:
+        print("Record was checked to: %s" % (str(checked)))
         self.mainwindow.controls['measure'] = checked
         self.mainwindow.measurement_clicked()
 
