@@ -731,7 +731,9 @@ class AppWindow(QMainWindow):
         os.system(path_to_img)
 
     def tab_changed(self, i):
+        self.tabs.blockSignals(True)
         self.tab_dict[i].record_checkbox.setChecked(self.controls['measure'])
+        self.tabs.blockSignals(False)
 
     def closeEvent(self, event):
         # Override the closeEvent method that exists and replace with controls editing to exit ongoing threads
