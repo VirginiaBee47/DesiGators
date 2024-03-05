@@ -463,7 +463,16 @@ class PsychrometricCalculatorWindow(QWidget):
         event.accept()
 
 
-class ChamberTabWidget(QWidget):
+class QChamberTabWidget(QTabWidget):
+    def __init__(self):
+        super().__init__()
+
+    def changeEvent(self, event):
+        print(event)
+        # self.widget()
+        event.accept()
+
+class ChamberTabPage(QWidget):
     def __init__(self, mainwindow, num):
         super().__init__()
         self.mainwindow = mainwindow  # Figure out if this import is necessary
@@ -613,15 +622,14 @@ class AppWindow(QMainWindow):
         output_calc_layout.addLayout(button_layout, 10)
 
         # Test tabs below buttons
-        self.tabs = QTabWidget(self)
+        self.tabs = QChamberTabWidget(self)
 
         # Play around with declaring tabs in self or each chamber tab individually or both
-        self.chamber_1_tab = ChamberTabWidget(self, 1)
-        self.chamber_2_tab = ChamberTabWidget(self, 2)
+        self.chamber_1_tab = ChamberTabPage(self, 1)
+        self.chamber_2_tab = ChamberTabPage(self, 2)
 
         self.tabs.addTab(self.chamber_1_tab, 'Chamber 1')
         self.tabs.addTab(self.chamber_2_tab, 'Chamber 2')
-        self.tabs.currentChanged.connect(self.render_new_tab)
         output_calc_layout.addWidget(self.tabs)
 
         layout.addLayout(output_calc_layout)
@@ -723,10 +731,6 @@ class AppWindow(QMainWindow):
         path_to_img = '~/Pictures/Main_GUI.png'
         os.system(path_to_img)
 
-    def render_new_tab(self, a0) -> None:
-        print(a0)
-        pass
-        
     def closeEvent(self, event):
         # Override the closeEvent method that exists and replace with controls editing to exit ongoing threads
         self.controls['measure'] = False
