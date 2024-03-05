@@ -543,8 +543,11 @@ class ChamberTabPage(QWidget):
         layout.addLayout(right_layout, 1)
 
     def record_checked(self, checked) -> None:
-        print(checked)
-        self.mainwindow.controls['measure'] = checked
+        if checked == 2:
+            checked_bool = True
+        else:
+            checked_bool = False
+        self.mainwindow.controls['measure'] = checked_bool
         self.mainwindow.measurement_clicked()
 
 
@@ -621,9 +624,13 @@ class AppWindow(QMainWindow):
         # Play around with declaring tabs in self or each chamber tab individually or both
         self.chamber_1_tab = ChamberTabPage(self, 1)
         self.chamber_2_tab = ChamberTabPage(self, 2)
+        self.chamber_3_tab = ChamberTabPage(self, 3)
+        self.chamber_4_tab = ChamberTabPage(self, 4)
 
         self.tabs.addTab(self.chamber_1_tab, 'Chamber 1')
         self.tabs.addTab(self.chamber_2_tab, 'Chamber 2')
+        self.tabs.addTab(self.chamber_3_tab, 'Chamber 3')
+        self.tabs.addTab(self.chamber_4_tab, 'Chamber 4')
         output_calc_layout.addWidget(self.tabs)
 
         layout.addLayout(output_calc_layout)
@@ -636,7 +643,8 @@ class AppWindow(QMainWindow):
 
         self.tab_dict = {0: self.chamber_1_tab,
                          1: self.chamber_2_tab,
-                         2: ''}
+                         2: self.chamber_3_tab,
+                         3: self.chamber_4_tab}
 
         self.controls = {'measure': False,
                          'calc_shown': False,
