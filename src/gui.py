@@ -464,9 +464,9 @@ class PsychrometricCalculatorWindow(QWidget):
 
 
 class ChamberTabWidget(QWidget):
-    def __init__(self, parent, num):
+    def __init__(self, mainwindow, num):
         super().__init__()
-        self.parent = parent  # Figure out if this import is necessary
+        self.mainwindow = mainwindow  # Figure out if this import is necessary
         self.num = num
 
         layout = QHBoxLayout()
@@ -500,9 +500,10 @@ class ChamberTabWidget(QWidget):
         record_control_layout = QHBoxLayout()
         record_control_layout.setSpacing(5)
         record_control_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        record_checkbox = QCheckBox()
+        self.record_checkbox = QCheckBox()
+        self.record_checkbox.stateChanged.connect(self.record_checked)
         record_label = QLabel('Recording')
-        record_control_layout.addWidget(record_checkbox)
+        record_control_layout.addWidget(self.record_checkbox)
         record_control_layout.addWidget(record_label)
 
         controls_box_layout.addLayout(heater_control_layout)
@@ -540,6 +541,10 @@ class ChamberTabWidget(QWidget):
         # Add both layouts together
         layout.addLayout(left_layout, 3)
         layout.addLayout(right_layout, 1)
+
+    def record_checked(self, checked: bool) -> None:
+        self.mainwindow.controls['measure'] = checked
+        self.mainwindow.measurement_clicked()
 
 
 class AppWindow(QMainWindow):
@@ -608,14 +613,16 @@ class AppWindow(QMainWindow):
         output_calc_layout.addLayout(button_layout, 10)
 
         # Test tabs below buttons
-        tabs = QTabWidget(self)
+        self.tabs = QTabWidget(self)
 
-        chamber_1_tab = ChamberTabWidget(self, 1)
-        chamber_2_tab = ChamberTabWidget(self, 2)
+        # Play around with declaring tabs in self or each chamber tab individually or both
+        self.chamber_1_tab = ChamberTabWidget(self, 1)
+        self.chamber_2_tab = ChamberTabWidget(self, 2)
 
-        tabs.addTab(chamber_1_tab, 'Chamber 1')
-        tabs.addTab(chamber_2_tab, 'Chamber 2')
-        output_calc_layout.addWidget(tabs)
+        self.tabs.addTab(self.chamber_1_tab, 'Chamber 1')
+        self.tabs.addTab(self.chamber_2_tab, 'Chamber 2')
+        self.tabs.currentChanged.connect(self.render_new_tab)
+        output_calc_layout.addWidget(self.tabs)
 
         layout.addLayout(output_calc_layout)
 
@@ -674,15 +681,13 @@ class AppWindow(QMainWindow):
         self.threadpool.start(coordinator)
 
     def measurement_clicked(self) -> str:
-        if not self.controls['measure']:
-            self.controls['measure'] = True
+        if self.controls['measure']:
             self.collection_start_time = int(time())
             self.mass_data = np.zeros((1, int(1 + self.load_cell_array.num_cells)))
             self.rht_data = np.zeros((1, int(2 * self.rht_sensor_array.num_sensors)))
             self.measurement_handling()
         else:
             # Add either auto-saving or a save-only button that doesn't stop data collection
-            self.controls['measure'] = False
             file_name = str(self.collection_start_time) + '_data.csv'
             headings = 'time, ' + ', '.join(
                 ["mass %i" % (num + 1) for num in range(self.load_cell_array.num_cells)]) + ', ' + ', '.join(
@@ -717,6 +722,10 @@ class AppWindow(QMainWindow):
     def open_qr_code(self) -> None:
         path_to_img = '~/Pictures/Main_GUI.png'
         os.system(path_to_img)
+
+    def render_new_tab(self, a0) -> None:
+        print(a0)
+        pass
         
     def closeEvent(self, event):
         # Override the closeEvent method that exists and replace with controls editing to exit ongoing threads
