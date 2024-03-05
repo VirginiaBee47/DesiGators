@@ -622,7 +622,7 @@ class AppWindow(QMainWindow):
         output_calc_layout.addLayout(button_layout, 10)
 
         # Test tabs below buttons
-        self.tabs = QChamberTabWidget(self)
+        self.tabs = QChamberTabWidget()
 
         # Play around with declaring tabs in self or each chamber tab individually or both
         self.chamber_1_tab = ChamberTabPage(self, 1)
