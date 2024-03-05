@@ -543,6 +543,7 @@ class ChamberTabPage(QWidget):
         layout.addLayout(right_layout, 1)
 
     def record_checked(self, checked) -> None:
+        print("\'record_checked\' called.")
         if checked == 2:
             checked_bool = True
         else:
@@ -621,7 +622,6 @@ class AppWindow(QMainWindow):
         self.tabs.blockSignals(True)
         self.tabs.currentChanged.connect(self.tab_changed)
 
-        # Play around with declaring tabs in self or each chamber tab individually or both
         self.chamber_1_tab = ChamberTabPage(self, 1)
         self.chamber_2_tab = ChamberTabPage(self, 2)
         self.chamber_3_tab = ChamberTabPage(self, 3)
@@ -741,7 +741,9 @@ class AppWindow(QMainWindow):
 
     def tab_changed(self, i):
         self.tabs.blockSignals(True)
+        self.tab_dict[i].blockSignals(True)
         self.tab_dict[i].record_checkbox.setChecked(self.controls['measure'])
+        self.tab_dict[i].blockSignals(False)
         self.tabs.blockSignals(False)
 
     def closeEvent(self, event):
