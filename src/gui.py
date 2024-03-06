@@ -23,8 +23,7 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QScrollArea,
     QTabWidget,
-    QFrame,
-    QSpacerItem
+    QFrame
 )
 from PyQt6.QtGui import (
     QAction,
@@ -57,36 +56,6 @@ class MassSignals(QObject):
     result = pyqtSignal(list)
 
 
-class MassUpdater(QRunnable):
-    """Runnable Updater for Mass Readouts"""
-
-    def __init__(self, _cell_array: LoadCellArray, control):
-        super(MassUpdater, self).__init__()
-
-        self.control = control
-        self.signals = MassSignals()
-        self._array = _cell_array
-
-    def run(self):
-        taken_reading = False
-        print("Thread started. [Mass]")
-
-        while True:
-            if not self.control['measure']:
-                break
-            elif self.control['read_signal'] and not taken_reading:
-                readings = self._array.take_measurement()
-                readings.insert(0, time())
-                self.signals.result.emit(readings)
-                sleep(0.5)
-                self.signals.finished.emit()
-                sleep(2)
-                taken_reading = True
-            elif not self.control['read_signal'] and taken_reading:
-                taken_reading = False
-        print("Thread completed. [Mass]")
-
-
 class RHTSignals(QObject):
     """Signals associated with the RHT updating worker. Works
     in the same way as the MassUpdater class.
@@ -97,41 +66,10 @@ class RHTSignals(QObject):
     result = pyqtSignal(list)
 
 
-class RHTUpdater(QRunnable):
-    def __init__(self, _sensor_array: RHTSensorArray, control):
-        super(RHTUpdater, self).__init__()
-
-        self.control = control
-        self.signals = RHTSignals()
-        self._array = _sensor_array
-
-    def run(self):
-        taken_reading = False
-
-        print("Thread started. [RHT]")
-        while True:
-            if not self.control['measure']:
-                break
-            elif self.control['read_signal'] and not taken_reading:
-                readings = self._array.take_measurement()
-                self.signals.result.emit(readings)
-                sleep(0.5)
-                self.signals.finished.emit()
-                sleep(1)
-                taken_reading = True
-            elif not self.control['read_signal'] and taken_reading:
-                taken_reading = False
-        print("Thread completed. [RHT]")
-
-
-class CoordinatorSignals(QObject):
-    read = pyqtSignal()
-
-
 class MeasurementCoordinator(QRunnable):
     def __init__(self, _cell_array: LoadCellArray, _sensor_array: RHTSensorArray, controls, interval: int = 10):
         super(MeasurementCoordinator, self).__init__()
-        self.signals = CoordinatorSignals()
+
         self.rht_signals = RHTSignals()
         self.mass_signals = MassSignals()
         self.rht_array = _sensor_array
@@ -157,7 +95,6 @@ class MeasurementCoordinator(QRunnable):
                 time_elapsed = measurement_stop_time - measurement_start_time
                 if time_elapsed < self.interval:
                     sleep(self.interval - time_elapsed)
-                self.signals.read.emit()
 
 
 class UnitConverterWindow(QWidget):
@@ -691,29 +628,13 @@ class AppWindow(QMainWindow):
         self.rht_data = np.append(self.rht_data, [[x for t in data for x in t]], axis=0)
         print(self.rht_data)
 
-    def emit_read_pulse(self) -> None:
-        self.controls['read_signal'] = True
-        sleep(1)
-        self.controls['read_signal'] = False
-
     def measurement_handling(self) -> None:
         coordinator = MeasurementCoordinator(self.load_cell_array, self.rht_sensor_array, self.controls)
-        coordinator.signals.read.connect(self.emit_read_pulse)
         coordinator.mass_signals.result.connect(self.show_new_masses)
         coordinator.mass_signals.result.connect(self.store_masses)
+
         coordinator.rht_signals.result.connect(self.show_new_rht)
         coordinator.rht_signals.result.connect(self.store_rht)
-
-        # mass_handler = MassUpdater(self.load_cell_array, self.controls)
-        # mass_handler.signals.result.connect(self.show_new_masses)
-        # mass_handler.signals.result.connect(self.store_masses)
-        #
-        # rht_handler = RHTUpdater(self.rht_sensor_array, self.controls)
-        # rht_handler.signals.result.connect(self.show_new_rht)
-        # rht_handler.signals.result.connect(self.store_rht)
-        #
-        # self.threadpool.start(mass_handler)
-        # self.threadpool.start(rht_handler)
         self.threadpool.start(coordinator)
 
     def measurement_clicked(self) -> str:
@@ -771,12 +692,12 @@ class AppWindow(QMainWindow):
 
 
 def main() -> None:
-    psy_chart_app = QApplication(sys.argv)
+    desiccator_controller_app = QApplication(sys.argv)
 
     window = AppWindow()
     window.show()
 
-    psy_chart_app.exec()
+    desiccator_controller_app.exec()
 
 
 if __name__ == '__main__':
