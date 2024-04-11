@@ -2,7 +2,7 @@ from os import getcwd, chdir
 
 from numpy import polyfit, array, quantile
 
-import openpyxl
+#import openpyxl
 from time import time
 
 try:
