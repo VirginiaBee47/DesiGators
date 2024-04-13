@@ -8,7 +8,8 @@ from PyQt6.QtCore import (
     QRunnable,
     QThreadPool,
     QObject,
-    pyqtSignal
+    pyqtSignal,
+    QSize
 )
 from PyQt6.QtWidgets import (
     QApplication,
@@ -28,7 +29,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import (
     QAction,
-    QFont
+    QFont,
+    QPixmap
 )
 
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as QPltToolbar
@@ -60,36 +62,6 @@ class MassSignals(QObject):
     result = pyqtSignal(list)
 
 
-class MassUpdater(QRunnable):
-    """Runnable Updater for Mass Readouts"""
-
-    def __init__(self, _cell_array: LoadCellArray, control):
-        super(MassUpdater, self).__init__()
-
-        self.control = control
-        self.signals = MassSignals()
-        self._array = _cell_array
-
-    def run(self):
-        taken_reading = False
-        print("Thread started. [Mass]")
-
-        while True:
-            if not self.control['measure']:
-                break
-            elif self.control['read_signal'] and not taken_reading:
-                readings = self._array.take_measurement()
-                readings.insert(0, time())
-                self.signals.result.emit(readings)
-                sleep(0.5)
-                self.signals.finished.emit()
-                sleep(2)
-                taken_reading = True
-            elif not self.control['read_signal'] and taken_reading:
-                taken_reading = False
-        print("Thread completed. [Mass]")
-
-
 class RHTSignals(QObject):
     """Signals associated with the RHT updating worker. Works
     in the same way as the MassUpdater class.
@@ -98,33 +70,6 @@ class RHTSignals(QObject):
     finished = pyqtSignal()
     error = pyqtSignal()
     result = pyqtSignal(list)
-
-
-class RHTUpdater(QRunnable):
-    def __init__(self, _sensor_array: RHTSensorArray, control):
-        super(RHTUpdater, self).__init__()
-
-        self.control = control
-        self.signals = RHTSignals()
-        self._array = _sensor_array
-
-    def run(self):
-        taken_reading = False
-
-        print("Thread started. [RHT]")
-        while True:
-            if not self.control['measure']:
-                break
-            elif self.control['read_signal'] and not taken_reading:
-                readings = self._array.take_measurement()
-                self.signals.result.emit(readings)
-                sleep(0.5)
-                self.signals.finished.emit()
-                sleep(1)
-                taken_reading = True
-            elif not self.control['read_signal'] and taken_reading:
-                taken_reading = False
-        print("Thread completed. [RHT]")
 
 
 class CoordinatorSignals(QObject):
@@ -153,7 +98,7 @@ class MeasurementCoordinator(QRunnable):
                 except Exception as e:
                     print(e)
                     continue
-                    
+
                 self.rht_signals.result.emit(rht_readings)
 
                 mass_readings = self.mass_array.take_measurement()
@@ -184,9 +129,9 @@ class UnitConverterWindow(QWidget):
         header_label = QLabel("Heading")
 
         self.value_type_dropdown = QComboBox()
-        self.value_type_dropdown.addItems(['Select a value type', 'Mass', 'Volume', 'Temperature'])#, 'Pressure',
-                                           #'Mass Flow Rate', 'Volumetric Flow Rate', 'Energy', 'Power',
-                                           #'Specific Enthalpy', 'Specific Heat Capacity'])
+        self.value_type_dropdown.addItems(['Select a value type', 'Mass', 'Volume', 'Temperature', 'Pressure',
+                                           'Mass Flow Rate', 'Volumetric Flow Rate', 'Energy', 'Power',
+                                           'Specific Enthalpy', 'Specific Heat Capacity'])
         self.value_type_dropdown.currentIndexChanged.connect(self.value_type_dropdown_index_changed)
 
         row_one_layout.addWidget(header_label)
@@ -253,31 +198,31 @@ class UnitConverterWindow(QWidget):
             units = ['g', 'kg', 'lbm', 'slug', 'firkin']
         elif index == 1:
             # Volume
-            units = ['ft³', 'm³', 'L', 'mL',]# 'butt', 'hogsheads']
+            units = ['ft³', 'm³', 'L', 'mL', 'butt', 'hogsheads']
         elif index == 2:
             # Temperature
-            units = [chr(176) + 'C', chr(176) + 'F', 'K', chr(176) + 'R',]
-        # elif index == 3:
-            # # Pressure
-            # units = ['Pa', 'psi', 'mmHg', 'atm', 'bar', 'torr', 'beard-second-black-hole']
-        # elif index == 4:
-            # # Mass Flow Rate
-            # units = ['kg/s', 'lb/s']
-        # elif index == 5:
-            # # Volumetric Flow Rate
-            # units = ['SCFM', 'SCFH', 'SLPM', 'm³/h']
-        # elif index == 6:
-            # # Energy
-            # units = ['J', 'kJ', 'kWh', 'Btu', 'kcal', 'keV']
-        # elif index == 7:
-            # # Power
-            # units = ['W', 'kW', 'hp', 'dp', 'Btu/h', 'RT']
-        # elif index == 8:
-            # # Specific Enthalpy
-            # units = ['kJ/kg', 'Btu/lbm']
-        # elif index == 9:
-            # # Specific Heat Capacity
-            # units = ['kJ/kg\u00B7K', 'Btu/lbm\u00B7\u00B0R']
+            units = [chr(176) + 'C', chr(176) + 'F', 'K', chr(176) + 'R', ]
+        elif index == 3:
+            # Pressure
+            units = ['Pa', 'psi', 'mmHg', 'atm', 'bar', 'torr', 'beard-second-black-hole']
+        elif index == 4:
+            # Mass Flow Rate
+            units = ['kg/s', 'lb/s']
+        elif index == 5:
+            # Volumetric Flow Rate
+            units = ['SCFM', 'SCFH', 'SLPM', 'm³/h']
+        elif index == 6:
+            # Energy
+            units = ['J', 'kJ', 'kWh', 'Btu', 'kcal', 'keV']
+        elif index == 7:
+            # Power
+            units = ['W', 'kW', 'hp', 'dp', 'Btu/h', 'RT']
+        elif index == 8:
+            # Specific Enthalpy
+            units = ['kJ/kg', 'Btu/lbm']
+        elif index == 9:
+            # Specific Heat Capacity
+            units = ['kJ/kg\u00B7K', 'Btu/lbm\u00B7\u00B0R']
 
         self.known_value_dropdown.clear()
         self.known_value_dropdown.addItems(units)
@@ -309,7 +254,6 @@ class PsychrometricCalculatorWindow(QWidget):
         super().__init__()
 
         self.setWindowTitle("Psychrometric Calculator")
-
         self.parent = parent
 
         params_layout = QVBoxLayout()
@@ -489,7 +433,7 @@ class PsychrometricCalculatorWindow(QWidget):
 class ChamberTabPage(QWidget):
     def __init__(self, mainwindow, num):
         super().__init__()
-        self.mainwindow = mainwindow  # Figure out if this import is necessary
+        self.mainwindow = mainwindow  # Import is used for communication with AppWindow processes
         self.num = num
 
         layout = QHBoxLayout()
@@ -498,7 +442,7 @@ class ChamberTabPage(QWidget):
         # Create two main columns
         left_layout = QVBoxLayout()  # left_layout contains psychro plot
         right_layout = QVBoxLayout()  # right_layout contains three boxes controls on top, then current operating
-                                      # conditions, then log with warnings/errors
+        # conditions, then log with warnings/errors
 
         # Define left_layout
         psychro_layout = QVBoxLayout()
@@ -507,10 +451,10 @@ class ChamberTabPage(QWidget):
         self._psychro_plot_ref_out = None
         self.psychro_plot.axes.set_title('Psychrometric Chart (P=%i Pa)' % int(self.psychro_plot.total_pressure))
         psychro_toolbar = QPltToolbar(self.psychro_plot, self)
-        
+
         psychro_layout.addWidget(psychro_toolbar)
         psychro_layout.addWidget(self.psychro_plot)
-        
+
         left_layout.addLayout(psychro_layout)
 
         # Define right_layout
@@ -576,12 +520,12 @@ class ChamberTabPage(QWidget):
         self._mass_plot_ref = None
         self.mass_plot.axes.set(title='Mass', xlabel='Time Elapsed [s]', ylabel='Mass [g]')
         mass_toolbar = QPltToolbar(self.mass_plot, self)
-        
+
         mass_layout.addWidget(mass_toolbar)
         mass_layout.addWidget(self.mass_plot)
 
         right_layout.addLayout(mass_layout)
-        
+
         # Add both layouts together
         layout.addLayout(left_layout, 3)
         layout.addLayout(right_layout, 1)
@@ -594,6 +538,53 @@ class ChamberTabPage(QWidget):
             checked_bool = False
         self.mainwindow.controls['measure'] = checked_bool
         self.mainwindow.measurement_clicked()
+
+
+class HomePageTab(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+
+        # Home page should look like (from top to bottom):
+        # Title
+        # Logo
+        # Subtitle
+        # (Lower left hand corner) Logos for IPPD & FSHN
+        # (Lower right hand corner) Credits
+
+        title_label = QLabel('Welcome, DesiGators')
+
+        logo_label = QLabel()
+        logo_pixmap = QPixmap('src\\assets\\desigators_logo.jpg')
+        logo_pixmap = logo_pixmap.scaledToHeight(90, mode=Qt.TransformationMode.SmoothTransformation)
+        logo_label.setPixmap(logo_pixmap)
+
+        subtitle_label = QLabel('Subtitle')
+
+        # Add a row on the bottom for creator names and relevant logos
+        credits_layout = QHBoxLayout()
+        ippd_logo_label = QLabel(alignment=Qt.AlignmentFlag.AlignLeft)
+        ippd_logo_pixmap = QPixmap('src\\assets\\ippd_logo.jpg')
+        ippd_logo_pixmap = ippd_logo_pixmap.scaledToHeight(height=45, mode=Qt.TransformationMode.SmoothTransformation)
+        ippd_logo_label.setPixmap(ippd_logo_pixmap)
+
+        fshn_logo_label = QLabel(alignment=Qt.AlignmentFlag.AlignLeft)
+        fshn_logo_pixmap = QPixmap('src\\assets\\fshn_logo.jpg')
+        fshn_logo_pixmap = fshn_logo_pixmap.scaledToHeight(height=45, mode=Qt.TransformationMode.SmoothTransformation)
+        fshn_logo_label.setPixmap(fshn_logo_pixmap)
+
+        credits_label = QLabel('Credits: Virginia Covert, Korynn Haetten,\nStanley Moonjeli, Alexander Weaver',
+                               alignment=Qt.AlignmentFlag.AlignRight)
+
+        credits_layout.addWidget(ippd_logo_label)
+        credits_layout.addWidget(fshn_logo_label)
+        credits_layout.addWidget(credits_label)
+
+        layout.addWidget(title_label)
+        layout.addWidget(logo_label)
+        layout.addWidget(subtitle_label)
+        layout.addLayout(credits_layout)
 
 
 class AppWindow(QMainWindow):
@@ -638,15 +629,18 @@ class AppWindow(QMainWindow):
         self.tabs.blockSignals(True)
         self.tabs.currentChanged.connect(self.tab_changed)
 
-        self.chamber_1_tab = ChamberTabPage(self, 1)
-        self.chamber_2_tab = ChamberTabPage(self, 2)
-        self.chamber_3_tab = ChamberTabPage(self, 3)
-        self.chamber_4_tab = ChamberTabPage(self, 4)
+        home_page_tab = HomePageTab()
 
-        self.tabs.addTab(self.chamber_1_tab, 'Chamber 1')
-        self.tabs.addTab(self.chamber_2_tab, 'Chamber 2')
-        self.tabs.addTab(self.chamber_3_tab, 'Chamber 3')
-        self.tabs.addTab(self.chamber_4_tab, 'Chamber 4')
+        chamber_1_tab = ChamberTabPage(self, 1)
+        chamber_2_tab = ChamberTabPage(self, 2)
+        chamber_3_tab = ChamberTabPage(self, 3)
+        chamber_4_tab = ChamberTabPage(self, 4)
+
+        self.tabs.addTab(home_page_tab, "Home")
+        self.tabs.addTab(chamber_1_tab, 'Chamber 1')
+        self.tabs.addTab(chamber_2_tab, 'Chamber 2')
+        self.tabs.addTab(chamber_3_tab, 'Chamber 3')
+        self.tabs.addTab(chamber_4_tab, 'Chamber 4')
         self.current_tab = 0
         layout.addWidget(self.tabs)
 
@@ -656,10 +650,11 @@ class AppWindow(QMainWindow):
 
         self.threadpool = QThreadPool()
 
-        self.tab_dict = {0: self.chamber_1_tab,
-                         1: self.chamber_2_tab,
-                         2: self.chamber_3_tab,
-                         3: self.chamber_4_tab}
+        self.tab_dict = {0: home_page_tab,
+                         1: chamber_1_tab,
+                         2: chamber_2_tab,
+                         3: chamber_3_tab,
+                         4: chamber_4_tab}
 
         self.controls = {'measure': False,
                          'calc_shown': False,
@@ -668,25 +663,21 @@ class AppWindow(QMainWindow):
 
         self.tabs.blockSignals(False)
 
-    def clear_clicked(self) -> None:
-        if not self.controls['measure']:
-            self.dialogue_box.setText("Cleared!")
-
     def show_new_masses(self, masses: list) -> None:
         masses.pop(0)
         #mass_string = '\n'.join(["Load Cell %i: %f" % (i + 1, masses[i]) for i in range(len(masses))])
-        mass_string = "Load Cell %i : %f g" % (1,masses[0]+masses[1])
-        [self.tab_dict[i].conditions_1.setText(mass_string) for i in range(4)]
+        mass_string = "Load Cell %i : %f g" % (1, masses[0] + masses[1])
+        [self.tab_dict[i].conditions_1.setText(mass_string) for i in range(1, 5)]
 
     def show_new_rht(self, rhts: list) -> None:
         rht_string = '\n'.join(["Sensor %i - %f C\t %f %%" % (i + 1, rhts[i][0], rhts[i][1]) for i in range(len(rhts))])
-        [self.tab_dict[i].conditions_2.setText(rht_string) for i in range(4)]
+        [self.tab_dict[i].conditions_2.setText(rht_string) for i in range(1, 5)]
 
     def store_masses(self, data: list) -> None:
         current_time = data.pop(0)
         time_elapsed = current_time - self.collection_start_time
         self.mass_data = np.append(self.mass_data, [[time_elapsed, *data]], axis=0)
-        [self.tab_dict[i].log_label.setText('Time Elapsed: ' + str(time_elapsed)) for i in range(4)]
+        [self.tab_dict[i].log_label.setText('Time Elapsed: ' + str(time_elapsed)) for i in range(1, 5)]
         print(self.mass_data)
         self.show_mass_plot()
 
@@ -694,36 +685,38 @@ class AppWindow(QMainWindow):
         self.rht_data = np.append(self.rht_data, [[x for t in data for x in t]], axis=0)
         print(self.rht_data)
         self.show_psychro_plot()
-        
+
     def show_mass_plot(self) -> None:
-        xdata = self.mass_data[1:,0]
-        ydata = np.add(self.mass_data[1:,1], self.mass_data[1:,2])
-    
-        if self.tab_dict[0]._mass_plot_ref is None:
-            plot_refs = self.tab_dict[0].mass_plot.axes.plot(xdata, ydata)
-            self.tab_dict[0]._mass_plot_ref = plot_refs[0]
+        xdata = self.mass_data[1:, 0]
+        ydata = np.add(self.mass_data[1:, 1], self.mass_data[1:, 2])
+
+        if self.tab_dict[1]._mass_plot_ref is None:
+            plot_refs = self.tab_dict[1].mass_plot.axes.plot(xdata, ydata)
+            self.tab_dict[1]._mass_plot_ref = plot_refs[0]
         else:
-            self.tab_dict[0]._mass_plot_ref.set(xdata=xdata,ydata=ydata)
-            self.tab_dict[0].mass_plot.axes.set(xlim=(0,np.max(xdata)+10), ylim=(np.min(ydata)-25,np.max(ydata)+25))
-        self.tab_dict[0].mass_plot.draw()
-    
+            self.tab_dict[1]._mass_plot_ref.set(xdata=xdata, ydata=ydata)
+            self.tab_dict[1].mass_plot.axes.set(xlim=(0, np.max(xdata) + 10),
+                                                ylim=(np.min(ydata) - 25, np.max(ydata) + 25))
+        self.tab_dict[1].mass_plot.draw()
+
     def show_psychro_plot(self) -> None:
-        xdata_in = self.rht_data[:,0]
-        ydata_in = [find_humidity_ratio_from_RH_temp(self.rht_data[i,1]/100, xdata_in[i]) for i in range(len(xdata_in))]
-        xdata_out = self.rht_data[:,2]
-        ydata_out = [find_humidity_ratio_from_RH_temp(self.rht_data[i,3]/100, xdata_out[i]) for i in range(len(xdata_out))]
-        
-        if self.tab_dict[0]._psychro_plot_ref_in is None:
-            plot_refs = self.tab_dict[0].psychro_plot.axes.plot(xdata_in, ydata_in, 'ro')
-            self.tab_dict[0]._psychro_plot_ref_in = plot_refs[0]
-            
-            plot_refs = self.tab_dict[0].psychro_plot.axes.plot(xdata_out, ydata_out, 'bo')
-            self.tab_dict[0]._psychro_plot_ref_out = plot_refs[0]
+        xdata_in = self.rht_data[:, 0]
+        ydata_in = [find_humidity_ratio_from_RH_temp(self.rht_data[i, 1] / 100, xdata_in[i]) for i in
+                    range(len(xdata_in))]
+        xdata_out = self.rht_data[:, 2]
+        ydata_out = [find_humidity_ratio_from_RH_temp(self.rht_data[i, 3] / 100, xdata_out[i]) for i in
+                     range(len(xdata_out))]
+
+        if self.tab_dict[1]._psychro_plot_ref_in is None:
+            plot_refs = self.tab_dict[1].psychro_plot.axes.plot(xdata_in, ydata_in, 'ro')
+            self.tab_dict[1]._psychro_plot_ref_in = plot_refs[0]
+
+            plot_refs = self.tab_dict[1].psychro_plot.axes.plot(xdata_out, ydata_out, 'bo')
+            self.tab_dict[1]._psychro_plot_ref_out = plot_refs[0]
         else:
-            self.tab_dict[0]._psychro_plot_ref_in.set(xdata=xdata_in, ydata=ydata_in)
-            self.tab_dict[0]._psychro_plot_ref_out.set(xdata=xdata_out, ydata=ydata_out)
-        self.tab_dict[0].psychro_plot.draw()
-        
+            self.tab_dict[1]._psychro_plot_ref_in.set(xdata=xdata_in, ydata=ydata_in)
+            self.tab_dict[1]._psychro_plot_ref_out.set(xdata=xdata_out, ydata=ydata_out)
+        self.tab_dict[1].psychro_plot.draw()
 
     def emit_read_pulse(self) -> None:
         self.controls['read_signal'] = True
@@ -738,16 +731,6 @@ class AppWindow(QMainWindow):
         coordinator.rht_signals.result.connect(self.show_new_rht)
         coordinator.rht_signals.result.connect(self.store_rht)
 
-        # mass_handler = MassUpdater(self.load_cell_array, self.controls)
-        # mass_handler.signals.result.connect(self.show_new_masses)
-        # mass_handler.signals.result.connect(self.store_masses)
-        #
-        # rht_handler = RHTUpdater(self.rht_sensor_array, self.controls)
-        # rht_handler.signals.result.connect(self.show_new_rht)
-        # rht_handler.signals.result.connect(self.store_rht)
-        #
-        # self.threadpool.start(mass_handler)
-        # self.threadpool.start(rht_handler)
         self.threadpool.start(coordinator)
 
     def measurement_clicked(self) -> str:
@@ -767,13 +750,13 @@ class AppWindow(QMainWindow):
             try:
                 data_to_save = np.append(self.mass_data, self.rht_data, axis=1)
             except Exception:
-                data_to_save = np.append(np.append(self.mass_data, [[-1,-1,-1]], axis=0), self.rht_data, axis=1)    
+                data_to_save = np.append(np.append(self.mass_data, [[-1, -1, -1]], axis=0), self.rht_data, axis=1)
             np.savetxt(file_name, data_to_save, header=headings, delimiter=', ', fmt='%1.4f')
             self.mass_data = None
             self.rht_data = None
-            
-            [self.tab_dict[i].log_label.setText('Time Elapsed: ') for i in range(4)]
-            for i in range(4):
+
+            [self.tab_dict[i].log_label.setText('Time Elapsed: ') for i in range(1, 5)]
+            for i in range(1, 5):
                 self.tab_dict[i]._mass_plot_ref = None
                 self.tab_dict[i]._psychro_plot_ref_in = None
                 self.tab_dict[i]._psychro_plot_ref_out = None
@@ -802,9 +785,10 @@ class AppWindow(QMainWindow):
 
     def tab_changed(self, i):
         self.current_tab = i
-        self.tab_dict[i].record_checkbox.blockSignals(True)
-        self.tab_dict[i].record_checkbox.setChecked(self.controls['measure'])
-        self.tab_dict[i].record_checkbox.blockSignals(False)
+        if i != 0:
+            self.tab_dict[i].record_checkbox.blockSignals(True)
+            self.tab_dict[i].record_checkbox.setChecked(self.controls['measure'])
+            self.tab_dict[i].record_checkbox.blockSignals(False)
 
     def closeEvent(self, event):
         # Override the closeEvent method that exists and replace with controls editing to exit ongoing threads

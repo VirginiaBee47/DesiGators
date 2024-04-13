@@ -1,3 +1,19 @@
+"""
+Units
+----------------------------------------
+Mass                    :   g,      kg,     lbm,    slug,   firkin
+Volume                  :   ft³,    m³,     L,      mL,     butt,   hogsheads
+Temperature             :
+Pressure                :
+Mass Flow Rate          :
+Volumetric Flow Rate    :
+Energy                  :
+Power                   :
+Specific Enthalpy       :
+Specific Heat Capacity  :
+"""
+
+
 def convert_units(value_type: str, unit_a: str, unit_b: str, value_a: float) -> float:
     value_b = None
     if unit_a == unit_b:
