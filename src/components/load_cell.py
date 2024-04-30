@@ -1,9 +1,7 @@
+import sys
 from os import getcwd, chdir
 
 from numpy import polyfit, array, quantile
-
-#import openpyxl
-from time import time
 
 try:
     import hx711
@@ -11,81 +9,83 @@ except ImportError:
     print("You seem to be testing on a device that's not a RaspberryPi (or does not have RPi.GPIO installed). "
           "Continuing with reduced features...")
 
+if '--windows' not in sys.argv:
+    class LoadCell(hx711.HX711):
+        def __init__(self, data_pin: int, clock_pin: int, gain: int=128, channel: str='A', chamber: int=1, side: str='L', m: float=None, b: float=None):
+            super().__init__(data_pin, clock_pin, gain, channel)
 
-class LoadCell(hx711.HX711):
-    def __init__(self, data_pin: int, clock_pin: int, gain: int=128, channel: str='A', chamber: int=1, side: str='L', m: float=None, b: float=None):
-        super().__init__(data_pin, clock_pin, gain, channel)
+            if chamber not in [1, 2, 3, 4]:
+                raise ValueError("Chamber parameter must be one of [1,2,3,4].")
 
-        if chamber not in [1, 2, 3, 4]:
-            raise ValueError("Chamber parameter must be one of [1,2,3,4].")
+            if str(side).upper() not in ['L', 'R']:
+                raise ValueError("Side parameter must equal 'L' or 'R'.")
 
-        if str(side).upper() not in ['L', 'R']:
-            raise ValueError("Side parameter must equal 'L' or 'R'.")
+            self.data_pin = data_pin
+            self.clock_pin = clock_pin
+            self.gain = gain
+            self.channel = channel
 
-        self.data_pin = data_pin
-        self.clock_pin = clock_pin
-        self.gain = gain
-        self.channel = channel
+            self.id = str(chamber) + str(side).upper()
 
-        self.id = str(chamber) + str(side).upper()
+            self.m = m
+            self.b = b
 
-        self.m = m
-        self.b = b
+        def tare(self, sample_size: int=25):
+            readings = self.get_raw_data(sample_size)
 
-    def tare(self, sample_size: int=25):
-        readings = self.get_raw_data(sample_size)
+            average_val = sum(readings) / len(readings)
+            self.offset = average_val
 
-        average_val = sum(readings) / len(readings)
-        self.offset = average_val
+        def take_measurement(self) -> float:
+            readings = self.get_raw_data(10)
 
-    def take_measurement(self) -> float:
-        readings = self.get_raw_data(10)
+            readings = array(readings)
+            readings = readings[(readings > quantile(readings, 0.1)) & (readings < quantile(readings, 0.9))].tolist()
 
-        readings = array(readings)
-        readings = readings[(readings > quantile(readings, 0.1)) & (readings < quantile(readings, 0.9))].tolist()
+            measurement = sum(readings) / len(readings)
+            return measurement
 
-        measurement = sum(readings) / len(readings)
-        return measurement
+        def get_mass(self) -> float:
+            measurement = self.take_measurement()
+            mass = self.m * measurement + self.b
+            return mass
 
-    def get_mass(self) -> float:
-        measurement = self.take_measurement()
-        mass = self.m * measurement + self.b
-        return mass
+        def calibrate(self) -> None:
+            accept = input("Are you sure you want to calibrate cell %s? (y/n) ")
+            if accept.lower() == 'y':
+                print("Now calibrating load cell: %s" % str(self.id))
+                calibrating = True
+                input("Ensure that 0 mass is on the scale, then press enter.")
+                working_mass = 0
 
-    def calibrate(self) -> None:
-        print("Now calibrating load cell: %s" % str(self.id))
-        calibrating = True
-        input("Ensure that 0 mass is on the scale, then press enter.")
-        working_mass = 0
+                calibration_data = [[], []]
 
-        calibration_data = [[], []]
+                calibration_data[0].append(self.take_measurement())
+                calibration_data[1].append(working_mass)
 
-        calibration_data[0].append(self.take_measurement())
-        calibration_data[1].append(working_mass)
+                while calibrating:
+                    working_mass_accepted = False
 
-        while calibrating:
-            working_mass_accepted = False
+                    while not working_mass_accepted:
+                        try:
+                            working_mass = int(input("Add a known mass onto the scale.\nMass: "))
+                            working_mass_accepted = True
+                        except Exception:
+                            print("Not a valid mass...")
 
-            while not working_mass_accepted:
-                try:
-                    working_mass = int(input("Add a known mass onto the scale.\nMass: "))
-                    working_mass_accepted = True
-                except Exception:
-                    print("Not a valid mass...")
+                    print("Do not disturb the scale during meausurement...")
+                    calibration_data[0].append(self.take_measurement())
+                    calibration_data[1].append(working_mass)
 
-            print("Do not disturb the scale during meausurement...")
-            calibration_data[0].append(self.take_measurement())
-            calibration_data[1].append(working_mass)
+                    if (ans := input("Do you wish to continue? [Y/N] ").lower()) == "n":
+                        calibrating = False
+                    elif ans == 'no':
+                        calibrating = False
+                    elif ans != 'y':
+                        print("Answer interpreted as \'yes\'")
 
-            if (ans := input("Do you wish to continue? [Y/N] ").lower()) == "n":
-                calibrating = False
-            elif ans == 'no':
-                calibrating = False
-            elif ans != 'y':
-                print("Answer interpreted as \'yes\'")
-
-        self.m, self.b = polyfit(calibration_data[0], calibration_data[1], 1)
-        print("Regression Equation: y = %f*x = %f" % (self.m, self.b))
+                self.m, self.b = polyfit(calibration_data[0], calibration_data[1], 1)
+                print("Regression Equation: y = %f*x = %f" % (self.m, self.b))
 
 
 class LoadCellArray:
@@ -168,29 +168,6 @@ class LoadCellArray:
         for chamber in self.cells:
             for cell in chamber:
                 cell.calibrate()
-
-
-def save_rht_vals(rht_vals):
-    path = '/home/admin/Documents/Drying Data/RHT'
-
-    name = 'autosave ' + str(time()) + '.xlsx'
-
-    sheet = openpyxl.Workbook()
-
-    for i in len(rht_vals):
-        sheet['Sheet1']['A' + str(i + 1)] = rht_vals[i][0]
-        sheet['Sheet1']['B' + str(i + 1)] = rht_vals[i][1]
-        sheet['Sheet1']['C' + str(i + 1)] = rht_vals[i][2]
-        sheet['Sheet1']['D' + str(i + 1)] = rht_vals[i][3]
-        sheet['Sheet1']['E' + str(i + 1)] = rht_vals[i][4]
-        sheet['Sheet1']['F' + str(i + 1)] = rht_vals[i][5]
-        sheet['Sheet1']['G' + str(i + 1)] = rht_vals[i][6]
-        sheet['Sheet1']['H' + str(i + 1)] = rht_vals[i][7]
-        sheet['Sheet1']['I' + str(i + 1)] = rht_vals[i][8]
-
-    sheet.save(path + name)
-
-    return name
 
 
 def main():

@@ -25,7 +25,8 @@ from PyQt6.QtWidgets import (
     QScrollArea,
     QTabWidget,
     QFrame,
-    QSpacerItem
+    QSpacerItem,
+    QDialog, QDialogButtonBox
 )
 from PyQt6.QtGui import (
     QAction,
@@ -37,7 +38,7 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as QPltToolb
 
 from exceptions import PointNotDefinedException, InvalidParamsException
 from psychrometric_calc import PsychrometricProperties, find_humidity_ratio_from_RH_temp
-from unit_converter import convert_units
+from unit_converter import convert_units, unit_equivalents
 from components.load_cell import LoadCellArray
 from components.sht45 import RHTSensorArray, SHT45
 from plot import QMassPltCanvas, QPsychroPltCanvas
@@ -48,6 +49,25 @@ class QInputBox(QLineEdit):
         super(QLineEdit, self).__init__(*args, **kwargs)
 
         self.property_name = property_name
+
+
+class QRCodeDlg(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('SOP QR Code')
+
+        QBtn = QDialogButtonBox.StandardButton.Close
+        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox.close.connect(self.close)
+
+        self.layout = QVBoxLayout()
+        qr_code = QLabel()
+        qr_code_pixmap = QPixmap('home/admin/DesiGators/src/assets/qr_code.png')
+        qr_code_pixmap = qr_code_pixmap.scaledToHeight(100, mode=Qt.TransformationMode.SmoothTransformation)
+        qr_code.setPixmap(qr_code_pixmap)
+        self.layout.addWidget(qr_code)
+        self.layout.addWidget(self.buttonBox)
+        self.setLayout(self.layout)
 
 
 class MassSignals(QObject):
@@ -193,36 +213,38 @@ class UnitConverterWindow(QWidget):
             self.value_type_dropdown.removeItem(0)
             index -= 1
 
-        if index == 0:
-            # Mass
-            units = ['g', 'kg', 'lbm', 'slug', 'firkin']
-        elif index == 1:
-            # Volume
-            units = ['ft³', 'm³', 'L', 'mL', 'butt', 'hogsheads']
-        elif index == 2:
-            # Temperature
-            units = [chr(176) + 'C', chr(176) + 'F', 'K', chr(176) + 'R', ]
-        elif index == 3:
-            # Pressure
-            units = ['Pa', 'psi', 'mmHg', 'atm', 'bar', 'torr', 'beard-second-black-hole']
-        elif index == 4:
-            # Mass Flow Rate
-            units = ['kg/s', 'lb/s']
-        elif index == 5:
-            # Volumetric Flow Rate
-            units = ['SCFM', 'SCFH', 'SLPM', 'm³/h']
-        elif index == 6:
-            # Energy
-            units = ['J', 'kJ', 'kWh', 'Btu', 'kcal', 'keV']
-        elif index == 7:
-            # Power
-            units = ['W', 'kW', 'hp', 'dp', 'Btu/h', 'RT']
-        elif index == 8:
-            # Specific Enthalpy
-            units = ['kJ/kg', 'Btu/lbm']
-        elif index == 9:
-            # Specific Heat Capacity
-            units = ['kJ/kg\u00B7K', 'Btu/lbm\u00B7\u00B0R']
+        units = [unit for unit in unit_equivalents[self.value_type_dropdown.currentText()]]
+
+        # if index == 0:
+        #     # Mass
+        #     units = [unit for unit in unit_equivalents['Mass']]
+        # elif index == 1:
+        #     # Volume
+        #     units = ['ft³', 'm³', 'L', 'mL', 'butt', 'hogsheads']
+        # elif index == 2:
+        #     # Temperature
+        #     units = [chr(176) + 'C', chr(176) + 'F', 'K', chr(176) + 'R', ]
+        # elif index == 3:
+        #     # Pressure
+        #     units = ['Pa', 'psi', 'mmHg', 'atm', 'bar', 'torr', 'beard-second-black-hole']
+        # elif index == 4:
+        #     # Mass Flow Rate
+        #     units = ['kg/s', 'lb/s']
+        # elif index == 5:
+        #     # Volumetric Flow Rate
+        #     units = ['SCFM', 'SCFH', 'SLPM', 'm³/h']
+        # elif index == 6:
+        #     # Energy
+        #     units = ['J', 'kJ', 'kWh', 'Btu', 'kcal', 'keV']
+        # elif index == 7:
+        #     # Power
+        #     units = ['W', 'kW', 'hp', 'dp', 'Btu/h', 'RT']
+        # elif index == 8:
+        #     # Specific Enthalpy
+        #     units = ['kJ/kg', 'Btu/lbm']
+        # elif index == 9:
+        #     # Specific Heat Capacity
+        #     units = ['kJ/kg\u00B7K', 'Btu/lbm\u00B7\u00B0R']
 
         self.known_value_dropdown.clear()
         self.known_value_dropdown.addItems(units)
@@ -553,25 +575,27 @@ class HomePageTab(QWidget):
         # (Lower left hand corner) Logos for IPPD & FSHN
         # (Lower right hand corner) Credits
 
-        title_label = QLabel('Welcome, DesiGators')
+        title_label = QLabel('Welcome, DesiGators', alignment=Qt.AlignmentFlag.AlignCenter)
+        title_label.setFont(QFont('Arial', 15))
 
         logo_label = QLabel()
-        logo_pixmap = QPixmap('src\\assets\\desigators_logo.jpg')
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo_pixmap = QPixmap('home/admin/DesiGators/src/assets/desigators_logo.jpg')
         logo_pixmap = logo_pixmap.scaledToHeight(90, mode=Qt.TransformationMode.SmoothTransformation)
         logo_label.setPixmap(logo_pixmap)
 
-        subtitle_label = QLabel('Subtitle')
+        subtitle_label = QLabel('Subtitle', alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Add a row on the bottom for creator names and relevant logos
         credits_layout = QHBoxLayout()
         ippd_logo_label = QLabel(alignment=Qt.AlignmentFlag.AlignLeft)
-        ippd_logo_pixmap = QPixmap('src\\assets\\ippd_logo.jpg')
-        ippd_logo_pixmap = ippd_logo_pixmap.scaledToHeight(height=45, mode=Qt.TransformationMode.SmoothTransformation)
+        ippd_logo_pixmap = QPixmap('home/admin/DesiGators/src/assets/ippd_logo.jpg')
+        ippd_logo_pixmap = ippd_logo_pixmap.scaledToHeight(45, mode=Qt.TransformationMode.SmoothTransformation)
         ippd_logo_label.setPixmap(ippd_logo_pixmap)
 
         fshn_logo_label = QLabel(alignment=Qt.AlignmentFlag.AlignLeft)
-        fshn_logo_pixmap = QPixmap('src\\assets\\fshn_logo.jpg')
-        fshn_logo_pixmap = fshn_logo_pixmap.scaledToHeight(height=45, mode=Qt.TransformationMode.SmoothTransformation)
+        fshn_logo_pixmap = QPixmap('home/admin/DesiGators/src/assets/fshn_logo.jpg')
+        fshn_logo_pixmap = fshn_logo_pixmap.scaledToHeight(45, mode=Qt.TransformationMode.SmoothTransformation)
         fshn_logo_label.setPixmap(fshn_logo_pixmap)
 
         credits_label = QLabel('Credits: Virginia Covert, Korynn Haetten,\nStanley Moonjeli, Alexander Weaver',
@@ -622,7 +646,7 @@ class AppWindow(QMainWindow):
         self.load_cell_array = LoadCellArray()
         self.load_cell_array.load_array()
 
-        self.rht_sensor_array = RHTSensorArray([SHT45(0), SHT45(1)])
+        self.rht_sensor_array = RHTSensorArray([SHT45(i) for i in range(8)])
 
         # Test tabs below buttons
         self.tabs = QTabWidget()
@@ -644,9 +668,9 @@ class AppWindow(QMainWindow):
         self.current_tab = 0
         layout.addWidget(self.tabs)
 
-        widget = QWidget()
-        widget.setLayout(layout)
-        self.setCentralWidget(widget)
+        self.widget = QWidget()
+        self.widget.setLayout(layout)
+        self.setCentralWidget(self.widget)
 
         self.threadpool = QThreadPool()
 
@@ -670,8 +694,9 @@ class AppWindow(QMainWindow):
         [self.tab_dict[i].conditions_1.setText(mass_string) for i in range(1, 5)]
 
     def show_new_rht(self, rhts: list) -> None:
-        rht_string = '\n'.join(["Sensor %i - %f C\t %f %%" % (i + 1, rhts[i][0], rhts[i][1]) for i in range(len(rhts))])
-        [self.tab_dict[i].conditions_2.setText(rht_string) for i in range(1, 5)]
+        for i in range(1, 5):
+            rht_string = '\n'.join(["Sensor %i - %f C\t %f %%" % (j + 1, rhts[j + (i-1) * 2][0], rhts[j + (i-1) * 2][1]) for j in range(2)])
+            self.tab_dict[i].conditions_2.setText(rht_string)
 
     def store_masses(self, data: list) -> None:
         current_time = data.pop(0)
@@ -687,36 +712,38 @@ class AppWindow(QMainWindow):
         self.show_psychro_plot()
 
     def show_mass_plot(self) -> None:
-        xdata = self.mass_data[1:, 0]
-        ydata = np.add(self.mass_data[1:, 1], self.mass_data[1:, 2])
+        for i in range(1, 5):
+            xdata = self.mass_data[1:, 0]
+            ydata = np.add(self.mass_data[1:, 1+(i-1)*2], self.mass_data[1:, 2*i])
 
-        if self.tab_dict[1]._mass_plot_ref is None:
-            plot_refs = self.tab_dict[1].mass_plot.axes.plot(xdata, ydata)
-            self.tab_dict[1]._mass_plot_ref = plot_refs[0]
-        else:
-            self.tab_dict[1]._mass_plot_ref.set(xdata=xdata, ydata=ydata)
-            self.tab_dict[1].mass_plot.axes.set(xlim=(0, np.max(xdata) + 10),
-                                                ylim=(np.min(ydata) - 25, np.max(ydata) + 25))
-        self.tab_dict[1].mass_plot.draw()
+            if self.tab_dict[i]._mass_plot_ref is None:
+                plot_refs = self.tab_dict[i].mass_plot.axes.plot(xdata, ydata)
+                self.tab_dict[i]._mass_plot_ref = plot_refs[0]
+            else:
+                self.tab_dict[i]._mass_plot_ref.set(xdata=xdata, ydata=ydata)
+                self.tab_dict[i].mass_plot.axes.set(xlim=(0, np.max(xdata) + 10),
+                                                    ylim=(np.min(ydata) - 25, np.max(ydata) + 25))
+            self.tab_dict[1].mass_plot.draw()
 
     def show_psychro_plot(self) -> None:
-        xdata_in = self.rht_data[:, 0]
-        ydata_in = [find_humidity_ratio_from_RH_temp(self.rht_data[i, 1] / 100, xdata_in[i]) for i in
-                    range(len(xdata_in))]
-        xdata_out = self.rht_data[:, 2]
-        ydata_out = [find_humidity_ratio_from_RH_temp(self.rht_data[i, 3] / 100, xdata_out[i]) for i in
-                     range(len(xdata_out))]
+        for i in range(1, 5):
+            xdata_in = self.rht_data[:, (i-1)*2]
+            ydata_in = [find_humidity_ratio_from_RH_temp(self.rht_data[i, 1+(i-1)*2] / 100, xdata_in[i]) for i in
+                        range(len(xdata_in))]
+            xdata_out = self.rht_data[:, 2+(i-1)*2]
+            ydata_out = [find_humidity_ratio_from_RH_temp(self.rht_data[i, 3+(i-1)*2] / 100, xdata_out[i]) for i in
+                         range(len(xdata_out))]
 
-        if self.tab_dict[1]._psychro_plot_ref_in is None:
-            plot_refs = self.tab_dict[1].psychro_plot.axes.plot(xdata_in, ydata_in, 'ro')
-            self.tab_dict[1]._psychro_plot_ref_in = plot_refs[0]
+            if self.tab_dict[i]._psychro_plot_ref_in is None:
+                plot_refs = self.tab_dict[i].psychro_plot.axes.plot(xdata_in, ydata_in, 'ro')
+                self.tab_dict[i]._psychro_plot_ref_in = plot_refs[0]
 
-            plot_refs = self.tab_dict[1].psychro_plot.axes.plot(xdata_out, ydata_out, 'bo')
-            self.tab_dict[1]._psychro_plot_ref_out = plot_refs[0]
-        else:
-            self.tab_dict[1]._psychro_plot_ref_in.set(xdata=xdata_in, ydata=ydata_in)
-            self.tab_dict[1]._psychro_plot_ref_out.set(xdata=xdata_out, ydata=ydata_out)
-        self.tab_dict[1].psychro_plot.draw()
+                plot_refs = self.tab_dict[i].psychro_plot.axes.plot(xdata_out, ydata_out, 'bo')
+                self.tab_dict[i]._psychro_plot_ref_out = plot_refs[0]
+            else:
+                self.tab_dict[i]._psychro_plot_ref_in.set(xdata=xdata_in, ydata=ydata_in)
+                self.tab_dict[i]._psychro_plot_ref_out.set(xdata=xdata_out, ydata=ydata_out)
+            self.tab_dict[i].psychro_plot.draw()
 
     def emit_read_pulse(self) -> None:
         self.controls['read_signal'] = True
@@ -750,7 +777,7 @@ class AppWindow(QMainWindow):
             try:
                 data_to_save = np.append(self.mass_data, self.rht_data, axis=1)
             except Exception:
-                data_to_save = np.append(np.append(self.mass_data, [[-1, -1, -1]], axis=0), self.rht_data, axis=1)
+                data_to_save = np.append(np.append(self.mass_data, [[-1]*self.load_cell_array.num_cells + 1], axis=0), self.rht_data, axis=1)
             np.savetxt(file_name, data_to_save, header=headings, delimiter=', ', fmt='%1.4f')
             self.mass_data = None
             self.rht_data = None
@@ -769,7 +796,7 @@ class AppWindow(QMainWindow):
             self.calc_window = PsychrometricCalculatorWindow(self)
             self.calc_window.show()
         else:
-            self.dialogue_box.setText("Calculator already shown.")
+            self.tab_dict[self.current_tab].log_label.setText(self.tab_dict[self.current_tab].log_label.text() + "\nCalculator already shown.")
 
     def show_converter_clicked(self) -> None:
         if not self.controls['converter_shown']:
@@ -777,11 +804,11 @@ class AppWindow(QMainWindow):
             self.converter_window = UnitConverterWindow(self)
             self.converter_window.show()
         else:
-            self.dialogue_box.setText("Unit converter already shown.")
+            self.tab_dict[self.current_tab].log_label.setText(self.tab_dict[self.current_tab].log_label.text() + "\nUnit Converter already shown.")
 
     def open_qr_code(self) -> None:
-        path_to_img = '~/Pictures/Main_GUI.png'
-        os.system(path_to_img)
+        dlg = QRCodeDlg(self.widget)
+        dlg.exec()
 
     def tab_changed(self, i):
         self.current_tab = i
@@ -801,8 +828,12 @@ class AppWindow(QMainWindow):
 def main() -> None:
     psy_chart_app = QApplication(sys.argv)
 
-    window = AppWindow()
-    window.show()
+    if '--windows' in sys.argv:
+        window = PsychrometricCalculatorWindow()
+        window.show()
+    else:
+        window = AppWindow()
+        window.show()
 
     psy_chart_app.exec()
 

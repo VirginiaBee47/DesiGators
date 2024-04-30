@@ -1,10 +1,16 @@
-import board
-import adafruit_tca9548a as mux_mod
-import adafruit_sht4x as sht_mod
+install = True
+try:
+    import board
+    import adafruit_tca9548a as mux_mod
+    import adafruit_sht4x as sht_mod
+except ImportError or ModuleNotFoundError as err:
+    print(err)
+    install = False
 
-i2c = board.I2C()
+if install:
+    i2c = board.I2C()
 
-tca = mux_mod.TCA9548A(i2c)
+    tca = mux_mod.TCA9548A(i2c)
 
 channel_assignments = {0: (1, 'I'),
                        1: (1, 'O'),
@@ -15,26 +21,28 @@ channel_assignments = {0: (1, 'I'),
                        6: (4, 'I'),
                        7: (4, 'O')}
 
+if install:
+    class SHT45(sht_mod.SHT4x):
+        def __init__(self, channel):
+            super().__init__(tca[channel])
+            chamber, side = channel_assignments[channel]
+            self.id = str(chamber) + str(side).upper()
 
-class SHT45(sht_mod.SHT4x):
-    def __init__(self, channel):
-        super().__init__(tca[channel])
-        chamber, side = channel_assignments[channel]
-        self.id = str(chamber) + str(side).upper()
+        def take_measurement(self, precision: str = 'H'):
+            if str(precision).upper() not in ['H', 'M', 'L']:
+                raise ValueError("Precision parameter must equal 'H', 'M', or 'L'.")
 
-    def take_measurement(self, precision: str = 'H'):
-        if str(precision).upper() not in ['H', 'M', 'L']:
-            raise ValueError("Precision parameter must equal 'H', 'M', or 'L'.")
+            if precision == 'H':
+                self.mode = 0xFD
+            elif precision == 'M':
+                self.mode = 0xF6
+            else:
+                self.mode = 0xE0
 
-        if precision == 'H':
-            self.mode = 0xFD
-        elif precision == 'M':
-            self.mode = 0xF6
-        else:
-            self.mode = 0xE0
-
-        return self.temperature, self.relative_humidity
-
+            return self.temperature, self.relative_humidity
+else:
+    class SHT45():
+        pass
 
 class RHTSensorArray:
     def __init__(self, sensors: list = None):

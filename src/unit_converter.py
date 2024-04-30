@@ -1,99 +1,52 @@
-"""
-Units
-----------------------------------------
-Mass                    :   g,      kg,     lbm,    slug,   firkin
-Volume                  :   ft³,    m³,     L,      mL,     butt,   hogsheads
-Temperature             :
-Pressure                :
-Mass Flow Rate          :
-Volumetric Flow Rate    :
-Energy                  :
-Power                   :
-Specific Enthalpy       :
-Specific Heat Capacity  :
-"""
+unit_equivalents = {'Mass': {'g': 1,
+                             'kg': 1000,
+                             'lbm': 453.59237,
+                             'slug': 14593.903,
+                             'firkin': 25401.17272},
+                    'Volume': {'ft³': 1,
+                               'm³': 35.31466672149,
+                               'L': 0.03531466672149,
+                               'mL': 0.00003531466672149,
+                               'butt': 16.8570836,
+                               'hogsheads': 8.42854179},
+                    'Temperature': {'K': 1,
+                                    'R': 5/9},
+                    'Pressure': {'Pa': 1,
+                                 'psi': 6894.76,
+                                 'mmHg': 133.3223684,
+                                 'atm': 101325.03982073,
+                                 'bar': 100000,
+                                 'torr': 133.3223684211},
+                    'Mass Flow Rate': {'kg/s': 1,
+                                       'kg/min': 0.01666666666,
+                                       'lb/s': 0.45359237,
+                                       'lb/min': 0.00755987283},
+                    'Volumetric Flow Rate': {'SCFM': 1,
+                                             'SCFH': 1/60,
+                                             'SLPM': 0.035314666213,
+                                             'm³/h': 0.58857777022},
+                    'Energy': {'J': 1,
+                               'kJ': 1000,
+                               'kWh': 3600000,
+                               'Btu': 1055.06,
+                               'kcal': 4184,
+                               'MeV': .00000000000016022},
+                    'Power': {'W': 1,
+                              'kW': 1000,
+                              'hp': 745.69987158,
+                              'Btu/h': 0.2930710702,
+                              'RT': 3516.8528421},
+                    'Specific Enthalpy': {'kJ/kg': 1,
+                                          'Btu/lbm': 2.3244444444,
+                                          'kcal/kg': 4.184},
+                    'Specific Heat Capacity': {'kJ/kg\u00B7K': 1,
+                                               'Btu/lbm\u00B7\u00B0R': 4.186,
+                                               'kcal/kg\u00B7K': 4.186}}
 
 
 def convert_units(value_type: str, unit_a: str, unit_b: str, value_a: float) -> float:
     value_b = None
-    if unit_a == unit_b:
-        value_b = value_a
-    elif value_type == 'Mass':
-        if unit_a == 'g':
-            if unit_b == 'kg':
-                value_b = value_a / 1000
-            elif unit_b == 'lbm':
-                value_b = mass_kg_to_lbm(value_a / 1000)
-            elif unit_b == 'slug':
-                value_b = mass_kg_to_slug(value_a / 1000)
-            elif unit_b == 'firkin':
-                value_b = mass_kg_to_firkin(value_a / 1000)
-        elif unit_a == 'kg':
-            if unit_b == 'g':
-                value_b = value_a * 1000
-            elif unit_b == 'lbm':
-                value_b = mass_kg_to_lbm(value_a)
-            elif unit_b == 'slug':
-                value_b = mass_kg_to_slug(value_a)
-            elif unit_b == 'firkin':
-                value_b = mass_kg_to_firkin(value_a)
-        elif unit_a == 'lbm':
-            if unit_b == 'g':
-                value_b = mass_lbm_to_kg(value_a) * 1000
-            elif unit_b == 'kg':
-                value_b = mass_lbm_to_kg(value_a)
-            elif unit_b == 'slug':
-                value_b = mass_lbm_to_slug(value_a)
-            elif unit_b == 'firkin':
-                value_b = mass_lbm_to_firkin(value_a)
-        elif unit_a == 'slug':
-            if unit_b == 'g':
-                value_b = mass_slug_to_kg(value_a) * 1000
-            elif unit_b == 'kg':
-                value_b = mass_slug_to_kg(value_a)
-            elif unit_b == 'lbm':
-                value_b = mass_slug_to_lbm(value_a)
-            elif unit_b == 'firkin':
-                value_b = mass_slug_to_firkin(value_a)
-        elif unit_a == 'firkin':
-            if unit_b == 'g':
-                value_b = mass_firkin_to_kg(value_a) * 1000
-            elif unit_b == 'kg':
-                value_b = mass_firkin_to_kg(value_a)
-            elif unit_b == 'lbm':
-                value_b = mass_firkin_to_lbm(value_a)
-            elif unit_b == 'slug':
-                value_b = mass_firkin_to_slug(value_a)
-    elif value_type == 'Volume':
-        if unit_a == 'ft³':
-            if unit_b == 'm³':
-                value_b = vol_feet_cubed_to_meters_cubed(value_a)
-            elif unit_b == 'L':
-                value_b = vol_feet_cubed_to_meters_cubed(value_a) * 1000
-            elif unit_b == 'mL':
-                value_b = vol_feet_cubed_to_meters_cubed(value_a) * 1000000
-        elif unit_a == 'm³':
-            if unit_b == 'ft³':
-                value_b = vol_meters_cubed_to_feet_cubed(value_a)
-            elif unit_b == 'L':
-                value_b = value_a * 1000
-            elif unit_b == 'mL':
-                value_b = value_a * 1000000
-        elif unit_a == 'L':
-            if unit_b == 'm³':
-                value_b = value_a / 1000
-            elif unit_b == 'ft³':
-                value_b = vol_meters_cubed_to_feet_cubed(value_a / 1000)
-            elif unit_b == 'mL':
-                value_b = value_a * 1000
-        elif unit_a == 'mL':
-            if unit_b == 'm³':
-                value_b = value_a / 1000000
-            elif unit_b == 'ft³':
-                value_b = vol_meters_cubed_to_feet_cubed(value_a / 1000000)
-            elif unit_b == 'L':
-                value_b = value_a / 1000
-    elif value_type == 'Temperature':
+    if value_type == 'Temperature':
         if unit_a == chr(176) + 'C':
             if unit_b == chr(176) + 'F':
                 value_b = temp_c_to_f(value_a)
@@ -122,178 +75,9 @@ def convert_units(value_type: str, unit_a: str, unit_b: str, value_a: float) -> 
                 value_b = value_a - 459.67
             elif unit_b == 'K':
                 value_b = temp_f_to_c(value_a - 459.67) + 273.15
-    elif value_type == 'Pressure':
-        if unit_a == 'Pa':
-            if unit_b == 'psi':
-                pass
-            elif unit_b == 'mmHg':
-                pass
-            elif unit_b == 'atm':
-                pass
-            elif unit_b == 'bar':
-                pass
-            elif unit_b == 'torr':
-                pass
-        elif unit_a == 'psi':
-            if unit_b == 'Pa':
-                pass
-            elif unit_b == 'mmHg':
-                pass
-            elif unit_b == 'atm':
-                pass
-            elif unit_b == 'bar':
-                pass
-            elif unit_b == 'torr':
-                pass
-        elif unit_a == 'mmHg':
-            if unit_b == 'Pa':
-                pass
-            elif unit_b == 'psi':
-                pass
-            elif unit_b == 'atm':
-                pass
-            elif unit_b == 'bar':
-                pass
-            elif unit_b == 'torr':
-                pass
-        elif unit_a == 'atm':
-            if unit_b == 'Pa':
-                pass
-            elif unit_b == 'psi':
-                pass
-            elif unit_b == 'mmHg':
-                pass
-            elif unit_b == 'bar':
-                pass
-            elif unit_b == 'torr':
-                pass
-        elif unit_a == 'bar':
-            if unit_b == 'Pa':
-                pass
-            elif unit_b == 'psi':
-                pass
-            elif unit_b == 'mmHg':
-                pass
-            elif unit_b == 'atm':
-                pass
-            elif unit_b == 'torr':
-                pass
-        elif unit_a == 'torr':
-            if unit_b == 'Pa':
-                pass
-            elif unit_b == 'psi':
-                pass
-            elif unit_b == 'mmHg':
-                pass
-            elif unit_b == 'atm':
-                pass
-            elif unit_b == 'bar':
-                pass
-    elif value_type == 'Mass Flow Rate':
-        if unit_a == 'kg/s':
-            pass
-        elif unit_b == 'lb/s':
-            pass
-    elif value_type == 'Volumetric Flow Rate':
-        if unit_a == 'SCFM':
-            pass
-        elif unit_a == 'SCFH':
-            pass
-        elif unit_a == 'SLPM':
-            pass
-        elif unit_a == 'm³/h':
-            pass
-    elif value_type == 'Energy':
-        if unit_a == 'J':
-            pass
-        elif unit_a == 'kJ':
-            pass
-        elif unit_a == 'kWh':
-            pass
-        elif unit_a == 'Btu':
-            pass
-        elif unit_a == 'kcal':
-            pass
-        elif unit_a == 'keV':
-            pass
-    elif value_type == 'Power':
-        if unit_a == 'W':
-            pass
-        elif unit_a == 'kW':
-            pass
-        elif unit_a == 'hp':
-            pass
-        elif unit_a == 'Btu/h':
-            pass
-        elif unit_a == 'RT':
-            pass
-    elif value_type == 'Specific Enthalpy':
-        if unit_a == 'kJ/kg':
-            pass
-        elif unit_a == 'Btu/lbm':
-            pass
-    elif value_type == 'Specific Heat Capacity':
-        if unit_a == 'kJ/kg\u00B7K':
-            pass
-        elif unit_a == 'Btu/lbm\u00B7\u00B0R':
-            pass
+    else:
+        value_b = value_a * unit_equivalents[value_type][unit_a] / unit_equivalents[value_type][unit_b]
     return value_b
-
-
-def mass_kg_to_lbm(kg: float) -> float:
-    return kg * 2.20462262185
-
-
-def mass_lbm_to_kg(lbm: float) -> float:
-    return lbm / 2.20462262185
-
-
-def mass_kg_to_slug(kg: float) -> float:
-    return kg / 14.59390
-
-
-def mass_slug_to_kg(slug: float) -> float:
-    return slug * 14.59390
-
-
-def mass_lbm_to_slug(lbm: float) -> float:
-    return lbm / 32.17405
-
-
-def mass_slug_to_lbm(slug: float) -> float:
-    return slug * 32.17405
-
-
-def mass_kg_to_firkin(kg: float) -> float:
-    return kg / 40.8233133
-
-
-def mass_firkin_to_kg(firkin: float) -> float:
-    return firkin * 40.8233133
-
-
-def mass_lbm_to_firkin(lbm: float) -> float:
-    return lbm / 90
-
-
-def mass_firkin_to_lbm(firkin: float) -> float:
-    return firkin * 90
-
-
-def mass_slug_to_firkin(slug: float) -> float:
-    return mass_kg_to_firkin(mass_slug_to_kg(slug))
-
-
-def mass_firkin_to_slug(firkin: float) -> float:
-    return mass_kg_to_slug(mass_firkin_to_kg(firkin))
-
-
-def vol_meters_cubed_to_feet_cubed(cu_meters: float) -> float:
-    return cu_meters * 35.3147
-
-
-def vol_feet_cubed_to_meters_cubed(cu_feet: float) -> float:
-    return cu_feet / 35.3147
 
 
 def temp_f_to_c(f: float) -> float:
